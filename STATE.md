@@ -129,4 +129,4 @@ Deferred work, with the loop that owns it. Not blockers — these are scheduled.
 ## Files maintained continuously (§0.3)
 
 `STATE.md` (this) · `DECISIONS.md` (10 entries) · `BLOCKERS.md` (none open) ·
-`RESEARCH.md` (12 entries) · `CREDITS.md` · `docs/adr/` (2 of ≥5)
+`RESEARCH.md` (12 entries) · `CREDITS.md` · `docs/adr/` (2 of ≥5) · `README.md` (built early, at request — documents only the two plates that exist)

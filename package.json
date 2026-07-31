@@ -26,7 +26,9 @@
     "lh": "node tools/lighthouse.mjs",
     "fit:cmf": "node tools/fit-cmf.mjs",
     "shaders": "playwright test tools/shaders.spec.ts",
-    "gate:l1": "playwright test tools/gate-l1.spec.ts"
+    "gate:l1": "playwright test tools/gate-l1.spec.ts",
+    "media": "playwright test tools/media.spec.ts",
+    "media:gifs": "node tools/make-gifs.mjs"
   },
   "dependencies": {
     "@react-three/drei": "10.7.7",
@@ -58,6 +60,7 @@
     "eslint": "10.8.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-react-refresh": "0.5.3",
+    "gifenc": "^1.0.3",
     "globals": "17.8.0",
     "jsdom": "30.0.1",
     "leva": "0.10.1",
