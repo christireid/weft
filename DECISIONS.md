@@ -182,6 +182,113 @@ central claim is that every frame is computed live on the visitor's machine. The
 video is produced at all is `docs/media/` in L6 — capture _of_ the site for the README, by
 Playwright and ffmpeg, which is a documentation artifact and not part of the page.
 
+## D-012 · L1 · The CMF coefficients are fitted here, not transcribed
+
+`RESEARCH.md` §5 flagged this as **[to validate in L1]**: the Wyman/Sloan/Shirley paper
+(JCGT 2(2) 2013) is unreachable from this sandbox, and §0.4 forbids inventing numbers, so
+its coefficients could not be used.
+
+Resolution: take the **functional form** from the literature and cite it — each colour-
+matching curve as a small sum of _piecewise_ Gaussians, which have different widths either
+side of their peak and so can follow the CIE curves' asymmetry — and **fit the coefficients
+here**, with `tools/fit-cmf.mjs`, to tabulated CIE 1931 2° data checked into `tools/data/`.
+Seeds come from the data itself (peaks by local maxima, widths by half-width-at-half-
+maximum), not from recalled values. Optimiser is a hand-rolled Nelder-Mead with restarts —
+no scipy in this container, and a 60-line optimiser in the repo is more auditable than a
+dependency anyway.
+
+Lobe counts 3/2/2 for x̄/ȳ/z̄. More lobes were tried (up to 4/3/3) and did not improve the
+worst-case error at all, so the cheapest configuration that reaches it is the one shipped:
+seven piecewise Gaussians total.
+
+**Measured against the tabulated table, 361 samples at 1 nm, on the GPU:**
+
+| curve | rmse    | max abs error |
+| ----- | ------- | ------------- |
+| x̄     | 7.71e-3 | **0.0202**    |
+| ȳ     | 3.03e-3 | **0.0073**    |
+| z̄     | 4.53e-3 | **0.0221**    |
+
+Two independent checks that the fit is the real thing rather than a plausible curve:
+ȳ peaks at **0.9977 at 554 nm** (the CIE definition is exactly 1.0 at 555 nm), and a flat
+spectrum resolves to **exactly (1,1,1)** at N = 4, 8, 16, 32 and 64 samples.
+
+The XYZ→linear-sRGB matrix is derived in the same script from the IEC 61966-2-1 primary
+chromaticities and D65, by inverting the RGB→XYZ matrix built from them. It comes out as
+the standard sRGB matrix to eight decimal places, which is the check that the derivation is
+right — and it maps D65 to (1.00000, 1.00000, 1.00000) on the GPU.
+
+## D-013 · L1 · Curl uses central differences, not an analytic gradient
+
+`RESEARCH.md` §4 left this open with a measurable answer required. §2 asks for curl "derived
+analytically from the gradient of a 3D simplex field"; webgl-noise's `snoise` returns the
+value only, so the options were central differences (6 noise evaluations per component set)
+or rewriting `snoise` to return its gradient (3, but a modified copy of a well-known file).
+
+Chose **central differences**, for a reason that outweighs the arithmetic: `simplex3d.glsl`
+is shipped verbatim from Ashima's original apart from symbol renaming, and being able to
+diff it against upstream and see that the maths is untouched is worth more than saving nine
+noise evaluations per particle. A hand-modified derivative-returning variant is exactly the
+kind of file that acquires a subtle error nobody can find. §9.1's "engineer reading the
+source for signs of copy-paste" is better served by an unmodified copy plus an honest note.
+
+The property that matters survives: the field is still the curl of _something_ (the
+finite-difference potential), so it is divergence-free to the same order. Verified on the
+GPU over 1024 scattered points: **max |∇·v| / ‖∇v‖\_F = 6.98e-3**, against a mean field
+magnitude of 3.50 and mean gradient norm of 34.3.
+
+The measure matters as much as the number. Dividing divergence by _speed_ — the obvious
+thing — is dimensionally meaningless, since divergence has units of velocity per length; it
+reported 7.7% and would have changed answer if the noise were simply rescaled. The
+dimensionless ratio is divergence over the Frobenius norm of the velocity gradient, and by
+that measure the field is 0.7% off divergence-free, which is the fp32 cancellation floor for
+two stacked central differences rather than a property of the field.
+
+ε is 1e-3: smaller loses the difference to fp32 cancellation, larger low-passes the curl and
+costs the small eddies that make the fray read as turbulence.
+
+## D-014 · L1 · The wedge glass is fictional, and says so
+
+`RESEARCH.md` §6 flagged the Cauchy A/B constants as **[to validate in L1]**. Rather than
+attribute a real glass whose catalogue values I could not fetch — which would be a
+fabricated number under §0.4 — the wedge is parameterised by its two **endpoint indices**,
+and A and B are solved from them in `weftCauchyFromEndpoints`.
+
+This is the honest framing rather than a workaround: WEFT documents a material that does not
+exist (§1), so its glass need not be N-BK7. What is real and load-bearing is Cauchy's
+_form_, n(λ) = A + B/λ² — the 1/λ² term is what makes the fringe read as dispersion rather
+than as a gradient, because real dispersion is compressed at the red end.
+
+Expressing it through endpoints also makes the choice legible at the call site: "this glass
+bends 380 nm at 1.62 and 740 nm at 1.58" instead of two opaque constants. Verified on the
+GPU: endpoints exact to 5 decimal places, monotonically decreasing across the band, and the
+midpoint sits **below** the linear interpolation of the endpoints — which is what
+distinguishes an actual 1/λ² curve from a lerp between two IORs.
+
+## D-015 · L1 · Shader chunk tests run in Playwright, not vitest
+
+§8.2 item 1 requires rendering each chunk to a small target and asserting known pixel
+values. jsdom has no WebGL, so these cannot run in vitest — a shader unit test that does not
+run a shader is not a shader unit test. `tools/shaders.spec.ts` compiles each chunk into a
+fragment shader, renders to an **RGBA32F** target in a real WebGL2 context, and reads the
+pixels back.
+
+Float target, not RGBA8: asserting a colour-matching fit to ±0.02 through an 8-bit target
+means asserting against a 1/255 = 0.0039 quantisation floor, close enough to the tolerance
+to make a passing test meaningless.
+
+Every chunk is checked against something **independent of itself** — tabulated CIE data, an
+independent JS bezier solver, an analytic identity, or a property that must hold
+mathematically. A shader test that asserts the shader agrees with itself catches nothing.
+
+Two tolerance failures on the first run were my tests' fault, not the shaders', and both are
+worth recording because both would have been easy to "fix" by loosening a threshold:
+
+- The SDF test recomputed its sample points in JS with `Math.cos`/`Math.sin`, which differ
+  from GLSL's in the last ulps; at radius 2.5 that exceeded the tolerance the SDFs deserve.
+  Fixed by having the shader report the points it actually used and comparing against those.
+- The curl test used the dimensionally-wrong divergence measure described in D-013.
+
 ---
 
 ## Delegated copy (§4.3)

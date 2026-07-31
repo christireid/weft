@@ -23,7 +23,9 @@
     "perf": "playwright test tools/perf.spec.ts",
     "a11y": "playwright test tools/a11y.spec.ts",
     "fonts:sync": "node tools/sync-fonts.mjs",
-    "lh": "node tools/lighthouse.mjs"
+    "lh": "node tools/lighthouse.mjs",
+    "fit:cmf": "node tools/fit-cmf.mjs",
+    "shaders": "playwright test tools/shaders.spec.ts"
   },
   "dependencies": {
     "@react-three/drei": "10.7.7",

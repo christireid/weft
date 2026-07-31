@@ -1,6 +1,6 @@
 # STATE
 
-**Current loop:** L1 · tasks 1–3 done, 4–6 in progress
+**Current loop:** L1 · tasks 1–4 done, 5–6 in progress
 **Last updated:** 2026-07-31
 **`pnpm verify`:** green
 **BLOCKERS:** none open
@@ -21,9 +21,10 @@ pnpm a11y                # axe-core → docs/verification/axe.json
 pnpm preview & pnpm lh   # Lighthouse a11y → docs/verification/lighthouse.json
 ```
 
-**Next task: L1 task 4** — the shader chunk library (§5.4), with a unit test per chunk that
-renders it to a 64×64 target and asserts known pixel values. Those tests run in Playwright
-against a real WebGL2 context, not in jsdom, which has no GL.
+**Next task: L1 task 5** — device tiering (§5.6) and the rolling p95 frame-time sampler,
+with 90-frame hysteresis so the tier never oscillates.
+
+Shader chunk tests: `pnpm shaders`. Refit the colour-matching curves: `pnpm fit:cmf`.
 
 `pnpm capture --at <t> --debug` puts the L1 HUD in the still; `D` toggles it live, `S`
 toggles Specimen Mode.
@@ -122,4 +123,4 @@ Deferred work, with the loop that owns it. Not blockers — these are scheduled.
 ## Files maintained continuously (§0.3)
 
 `STATE.md` (this) · `DECISIONS.md` (10 entries) · `BLOCKERS.md` (none open) ·
-`RESEARCH.md` (12 entries) · `CREDITS.md` · `docs/adr/` (1 of ≥5)
+`RESEARCH.md` (12 entries) · `CREDITS.md` · `docs/adr/` (2 of ≥5)
