@@ -77,6 +77,43 @@ by refraction. There is no brand accent.**
 The wedge is draggable — rotating it sweeps the spectrum across the viewport. There is no
 slider, because there is no chrome on this page at all.
 
+### Plate III · TURBULENTIA
+
+![The filament coming apart into a cloud of particles carried through a curl-noise field, the strands separating by wavelength](docs/media/plate-03.gif)
+
+The filament frays. Its particles are carried through a curl-noise field, and each one keeps
+the wavelength it had on the thread — so the cloud is a spectrum in suspension, violet at one
+end and red at the other.
+
+> `curl noise, v = ∇ × ψ(p), advected on a 512×512 float ping-pong pair, no CPU-side particle loop`
+
+<img src="docs/media/still-plate-03.png" alt="Plate III: the filament dispersed into ribbons of particles, coloured violet through green to red from left to right across the frame" width="100%">
+
+Curl noise rather than plain noise, and the difference is the whole plate. The curl of any
+vector field is divergence-free by construction — the divergence of a curl is identically
+zero — so the flow conserves density exactly rather than approximately. Particles pushed
+through a raw noise field bunch where it converges and thin where it diverges, and within a
+few seconds the cloud has clumped. A divergence-free field keeps a fray a fray.
+
+Each particle is a point sprite with an oriented capsule drawn inside it, so a fast particle
+becomes a streak and a slow one stays a dot. That is one line in the vertex shader and it
+produces most of what you can see.
+
+The colour is ordered along the source thread rather than assigned at random, which is not a
+detail. Random wavelengths give every pixel an independent saturated hue with no neighbourhood
+to average against, and the cloud reads as RGB confetti — it looked like fine spectral speckle
+at a third scale and only failed when a crop was opened at 1:1. Ordered, adjacent particles
+carry adjacent wavelengths, so the fray separates into coloured strands.
+
+<img src="docs/media/still-plate-03-lattice.png" alt="Plate III's exit: the particle cloud resolved into a regular rectangular lattice of rows and columns, seen at an oblique angle" width="100%">
+
+At the end of the plate the curl decays and a lattice attractor engages. Each particle has its
+own site, indexed by its position in the simulation texture, so the cloud fills the grid
+exactly once and resolves into rows and columns — the warp and weft the next plate is woven
+from. Snapping to the nearest site instead piles particles onto wherever the cloud was already
+dense and leaves the rest of the grid empty; that version resolved to a scatter of bright dots
+and is kept in `docs/verification/captures/` as the counter-example.
+
 ---
 
 ## The colour is real
@@ -204,6 +241,9 @@ Every claim above has an artifact behind it in [`docs/verification/`](docs/verif
 | Curl field, \|∇·v\| / ‖∇v‖_F              | **6.98 × 10⁻³** over 1024 scattered points                                                                               |
 | Bayer 8×8                                 | visits all **64/64** levels exactly once                                                                                 |
 | GPU easing vs. CSS `cubic-bezier`         | max delta **1.4 × 10⁻⁷**                                                                                                 |
+| Shader programs that fail to link         | **0**, swept across the whole document at tier 1 — a program that does not link is a console line and a missing pass, not an exception |
+| Plate I bleeding into Plate III           | outer 4% of the frame within **4 levels** of `--void` — the dither, and nothing else. 245 with the defect reinstated     |
+| CPU spectral fit vs. the GLSL it copies   | **exact**, compared against the bytes of the shader rather than against a restatement of the constants                   |
 
 The shader chunk tests are the ones worth opening. Each chunk is checked against something
 **independent of itself** — tabulated CIE data, an independent JS bezier solver, an analytic

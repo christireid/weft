@@ -1,10 +1,11 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import {
   AdditiveBlending,
   BufferAttribute,
   BufferGeometry,
   ShaderMaterial,
+  type Points,
   Vector3,
   type Texture,
   type WebGLRenderer,
@@ -77,6 +78,7 @@ export interface TurbulenceHandle {
 
 export function Turbulence() {
   const gl = useThree((state) => state.gl);
+  const pointsRef = useRef<Points>(null);
 
   const tier = appStore.getState().tier;
   const particles = useMemo(() => new Particles(gl, TIER_PROFILES[tier].simSize), [gl, tier]);
@@ -180,6 +182,31 @@ export function Turbulence() {
       setLocalTime(t, weight) {
         const u = material.uniforms;
         if (u.uWeight) u.uWeight.value = weight;
+
+        /*
+         * Skip the draw entirely when the plate contributes nothing.
+         *
+         * Weight zero already makes every particle emit zero, so the frame is
+         * correct either way. Measured at Plate I on this machine it is worth
+         * about one frame per second — 22 fps drawing, 21 fps skipping, which is
+         * noise. I put this in expecting it to be the reason a media capture had
+         * slowed to two minutes a frame; it was not, and the real cause was
+         * leftover browser processes from a run I had killed badly.
+         *
+         * It is kept because the measurement above is taken *before the plate
+         * has ever been entered*, when every particle is still at the origin and
+         * the whole cloud rasterises into one overlapping speck. Once the plate
+         * has run, the particles are spread across the frame and the fill cost is
+         * real. The honest summary is: correct, cheap, and not yet demonstrated
+         * to matter — the demonstration needs a scroll pass that visits Plate III
+         * and comes back, which belongs in the L5 perf harness.
+         *
+         * `Object3D.visible` rather than `Material.visible`: three tests the
+         * former while building the render list, so the draw call is never
+         * issued. The latter is checked after the object has already been
+         * projected and sorted.
+         */
+        if (pointsRef.current) pointsRef.current.visible = weight > 0;
         /*
          * §2's exit: "the noise field's curl decays to zero and a lattice
          * attractor engages. Particles fall into rows and columns."
@@ -208,5 +235,5 @@ export function Turbulence() {
     };
   }, [particles, geometry, material]);
 
-  return <points geometry={geometry} material={material} frustumCulled={false} />;
+  return <points ref={pointsRef} geometry={geometry} material={material} frustumCulled={false} />;
 }

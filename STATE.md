@@ -44,6 +44,20 @@ looks like.
    `tools/plates.spec.ts` measures the one bleed that is visible from the frame edge; Plate IV
    sits inside the frame, so it will need its own measurement rather than inheriting that one.
 
+**Plate IV needs a photograph, and this sandbox can reach almost nothing.** §2 wants "a CC0
+macro photograph (botanical or mineral)" refracted through the cloth — "the one place a
+photograph appears in the whole site" — and §0.4 forbids unlicensed imagery. Probed: only
+`raw.githubusercontent.com` answers; `upload.wikimedia.org`, `commons.wikimedia.org`,
+`images.pexels.com` and `cdn.jsdelivr.net` all fail to connect. So the image has to come from a
+GitHub-hosted repository with an explicit per-file licence, and it has to be fetched by a path
+known in advance: `api.github.com` answers but is proxied and scoped to this repository, so
+there is no search — `raw.githubusercontent.com/<owner>/<repo>/<ref>/<path>` is the only way in,
+and it needs the exact path. `KhronosGroup/glTF-Sample-Assets` carries per-model licence READMEs
+and is reachable, but its assets are 3-D models rather than macro photography. Resolve this **before** building the cloth, not after: if no properly
+licensed photograph can be obtained, that is a §12.4 blocker with a written reason, not a
+licence to substitute procedural content — the distorted-image requirement is specifically
+about a photograph.
+
 **Capturing anything with a simulation in it needs `--settle`.** This container advances Plate
 III at about a sixth of wall-clock, because the plate clamps its timestep to 1/30 s and a frame
 here costs ~220 ms. A default capture sees a fifth of a second of physics and reports a cloud

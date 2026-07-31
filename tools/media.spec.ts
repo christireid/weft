@@ -28,12 +28,27 @@ test.setTimeout(600_000);
 /** Settle time after a scroll change, in ms. Lenis smooths toward the target. */
 const SETTLE = 90;
 
+interface SequenceOptions {
+  /**
+   * Milliseconds to hold on each frame before the shutter, overriding SETTLE.
+   *
+   * A plate with a simulation in it needs more than the scroll takes to settle,
+   * because this container advances one simulation frame per ~220 ms of wall
+   * clock and the plates clamp their timestep (D-019). At the default 90 ms a
+   * sequence captures the same simulation state 34 times and the GIF is a still.
+   */
+  settleMs?: number;
+  /** Milliseconds to hold at the first offset before capturing anything. */
+  warmupMs?: number;
+}
+
 async function captureSequence(
   page: Page,
   name: string,
   frames: number,
   offsetAt: (i: number) => number,
   perFrame?: (page: Page, i: number) => Promise<void>,
+  options: SequenceOptions = {},
 ): Promise<void> {
   /*
    * Clear this sequence's directory, not the whole tree.
@@ -52,6 +67,16 @@ async function captureSequence(
     () => document.documentElement.scrollHeight - window.innerHeight,
   );
 
+  if (options.warmupMs) {
+    await page.evaluate(
+      (y) => {
+        window.scrollTo(0, y);
+      },
+      offsetAt(0) * scrollable,
+    );
+    await page.waitForTimeout(options.warmupMs);
+  }
+
   for (let i = 0; i < frames; i++) {
     await page.evaluate(
       (y) => {
@@ -60,7 +85,7 @@ async function captureSequence(
       offsetAt(i) * scrollable,
     );
     if (perFrame) await perFrame(page, i);
-    await page.waitForTimeout(SETTLE);
+    await page.waitForTimeout(options.settleMs ?? SETTLE);
     await page.screenshot({ path: join(dir, `${String(i).padStart(4, '0')}.png`) });
   }
   console.log(`[media] ${name}: ${String(frames)} frames`);
@@ -165,6 +190,34 @@ test('plate II: the prism', async ({ page }) => {
   );
 });
 
+test('plate III: the fray', async ({ page }) => {
+  /*
+   * Held at one offset while the simulation develops, with the pointer pushing
+   * through the cloud in the middle third.
+   *
+   * The offset barely moves: this plate's interest is entirely in time rather
+   * than in scroll, and scrolling through it would spend the GIF's frames on a
+   * blend band instead of on the fray. The warmup is what makes it a fray at
+   * all — 24 seconds of wall clock is about four seconds of simulation here, by
+   * which point the filament has come apart and the strands are legible.
+   */
+  await captureSequence(
+    page,
+    'plate-03',
+    34,
+    (i) => 0.4 + (i / 33) * 0.012,
+    async (p, i) => {
+      if (i === 8) {
+        await p.mouse.move(560, 420);
+        await p.mouse.down();
+      }
+      if (i > 8 && i < 24) await p.mouse.move(560 + (i - 8) * 26, 420 + (i - 8) * 9);
+      if (i === 24) await p.mouse.up();
+    },
+    { settleMs: 2200, warmupMs: 24_000 },
+  );
+});
+
 /* ---- stills ------------------------------------------------------------ */
 
 test('stills', async ({ page }) => {
@@ -203,6 +256,23 @@ test('stills', async ({ page }) => {
         await p.mouse.down();
         for (let i = 1; i <= 12; i++) await p.mouse.move(700 + i * 22, 450);
         await p.waitForTimeout(120);
+      },
+    ],
+    [
+      'still-plate-03',
+      0.4,
+      async (p) => {
+        // No pointer: the cloud is the subject. The wait is simulation time —
+        // see the note on the plate III sequence above.
+        await p.waitForTimeout(45_000);
+      },
+    ],
+    [
+      'still-plate-03-lattice',
+      0.498,
+      async (p) => {
+        // §2's exit transformation, fully engaged: rows and columns.
+        await p.waitForTimeout(45_000);
       },
     ],
   ];

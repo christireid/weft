@@ -53,6 +53,9 @@ const SEQUENCES = [
   ['hero', 14, 880, 8],
   ['plate-01', 14, 760, 4],
   ['plate-02', 14, 760, 4],
+  // Slower: the fray develops over simulation time rather than over scroll, and
+  // at 14 fps the strands move faster than the eye can follow a single one.
+  ['plate-03', 10, 760, 5],
 ];
 
 /** Box-filter downscale. Lanczos would be sharper; at these ratios, on a piece
