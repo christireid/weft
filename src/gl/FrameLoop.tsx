@@ -18,6 +18,8 @@ import { disposeTouchDebug, drawTouchDebug } from './touchDebugView';
 import { createTierController, stepTierController } from '../perf/controller';
 import { setTierController } from './registry';
 import { Composite } from './composite';
+import { Bloom } from './bloom';
+import { TIER_PROFILES } from '../perf/tier';
 import { getDispersionPlate, getTensionPlate } from './registry';
 
 /**
@@ -106,15 +108,25 @@ export function FrameLoop() {
     [gl],
   );
 
+  const bloom = useMemo(
+    () => new Bloom(gl, size.width * gl.getPixelRatio(), size.height * gl.getPixelRatio()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gl],
+  );
+
   useEffect(() => {
     const ratio = gl.getPixelRatio();
     composite.setSize(size.width * ratio, size.height * ratio);
-  }, [composite, gl, size.width, size.height]);
+    bloom.setSize(size.width * ratio, size.height * ratio);
+  }, [composite, bloom, gl, size.width, size.height]);
 
   useEffect(() => {
     initScroll();
     setTouchField(touch);
     setTierController(tier);
+    // Publish the boot tier once so anything reading the store before the first
+    // adaptation (the bloom gate, most importantly) sees the right value.
+    appStore.getState().setTier(tier.state.current);
 
     const detachPointer = attachPointer(touch);
     return () => {
@@ -123,10 +135,11 @@ export function FrameLoop() {
       setTierController(null);
       touch.dispose();
       composite.dispose();
+      bloom.dispose();
       disposeTouchDebug();
       destroyScroll();
     };
-  }, [touch, tier, gl, composite]);
+  }, [touch, tier, gl, composite, bloom]);
 
   useFrame((state, delta) => {
     const elapsed = state.clock.elapsedTime;
@@ -239,7 +252,16 @@ export function FrameLoop() {
     lastPointerX = pointerState.x;
 
     gl.setRenderTarget(null);
-    composite.present(gl);
+
+    /*
+     * Bloom between the scene and the composite. §5.6 gives it to tiers 1 and
+     * 2; tier 3 is "dither only", and the dither is the one pass §10 forbids
+     * removing because it is what stops the void banding on exactly the cheap
+     * panels that land in tier 3.
+     */
+    bloom.setEnabled(TIER_PROFILES[appStore.getState().tier].bloom);
+    bloom.render(gl, composite.sceneTarget.texture);
+    composite.present(gl, bloom.texture, bloom.intensity);
 
     if (appStore.getState().debug) {
       drawTouchDebug(gl, touch.texture);

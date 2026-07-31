@@ -9,6 +9,7 @@ import {
   UnsignedByteType,
   Vector2,
   WebGLRenderTarget,
+  type Texture,
   type TextureDataType,
   type WebGLRenderer,
 } from 'three';
@@ -107,6 +108,8 @@ export class Composite {
         uExposure: { value: 1 },
         uToneMap: { value: 1 },
         uVoid: { value: voidColour },
+        uBloom: { value: null },
+        uBloomIntensity: { value: 0 },
       },
     });
   }
@@ -120,9 +123,12 @@ export class Composite {
     this.target.setSize(Math.max(1, width), Math.max(1, height));
   }
 
-  /** Composite the scene buffer to the canvas. */
-  present(gl: WebGLRenderer): void {
+  /** Composite the scene buffer, plus bloom, to the canvas. */
+  present(gl: WebGLRenderer, bloom: Texture | null, bloomIntensity: number): void {
     resolution.set(this.target.width, this.target.height);
+    const u = this.material.uniforms;
+    if (u.uBloom) u.uBloom.value = bloom;
+    if (u.uBloomIntensity) u.uBloomIntensity.value = bloom ? bloomIntensity : 0;
     renderFullscreen(gl, this.material, null);
   }
 

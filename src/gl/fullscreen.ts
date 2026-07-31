@@ -69,14 +69,28 @@ export function renderFullscreen(
   gl: WebGLRenderer,
   material: Material,
   target: WebGLRenderTarget | null,
+  { accumulate = false }: { accumulate?: boolean } = {},
 ): void {
   const { scene: s, mesh: m } = ensure();
   const previousTarget = gl.getRenderTarget();
+  const previousAutoClear = gl.autoClear;
 
+  /*
+   * `accumulate` is for additively-blended passes that must *add to* what is
+   * already in the target rather than replace it — the bloom pyramid's combine
+   * step, principally.
+   *
+   * Without it three's `render` auto-clears the target first, so an additive
+   * material draws onto an empty buffer and the accumulation silently does
+   * nothing. That is exactly how bloom shipped with a correct-looking pyramid
+   * and no measurable effect on the frame: coverage moved 5.82% to 5.84%.
+   */
   m.material = material;
+  if (accumulate) gl.autoClear = false;
   gl.setRenderTarget(target);
   gl.render(s, camera);
   gl.setRenderTarget(previousTarget);
+  gl.autoClear = previousAutoClear;
 }
 
 /** Scratch for reading the renderer's drawing-buffer size. Module scope (§5.2). */

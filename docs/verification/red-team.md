@@ -242,12 +242,66 @@ artifact drifting from the artifact.
 
 ---
 
+## RT-13 · Bloom's fragment shader never compiled — **critical**
+
+**Angle:** the frame itself. Bloom was added to answer "the project does not look all that
+impressive", and after adding it the measured non-void coverage moved from 5.82% to 5.84% —
+which is to say, not at all.
+
+Two rounds of reasoning about the render graph found nothing, because nothing in the render
+graph was wrong. `renderFullscreen` was given an `accumulate` option so the additive combine
+would stop being auto-cleared — a real bug, fixed, and still no change in the frame.
+
+What settled it was refusing to reason any further and instrumenting instead. In order: an A/B
+of two builds with the bloom constants set an order of magnitude apart came back **byte
+identical**, which ruled out tuning. A forced red tint in the composite moved 99.54% of pixels,
+which proved source changes do reach the screen. Feeding the scene texture through the bloom
+sampler slot moved 6.52%, which proved the sampler binds. A constant-colour probe in the bloom
+shader still produced nothing, and a readback inside `render()` showed every level sitting at
+its clear colour while a control clear to green read back green — so the readback was honest
+and the draws genuinely were not landing.
+
+Only then did I attach a console listener, which said it in one line:
+
+```
+THREE.WebGLProgram: Shader Error 0 - VALIDATE_STATUS false
+ERROR: 0:68: 'in' : function must have the same parameter qualifiers in all of its declarations
+ERROR: 0:68: 'luminance' : function already has a body
+```
+
+three prepends `tonemapping_pars_fragment` to every `ShaderMaterial` fragment shader, and that
+chunk defines `float luminance( const in vec3 rgb )`. The helper in `bloom.frag.glsl` was named
+`luminance(vec3 c)` — not an override but a redefinition with different parameter qualifiers.
+The program never linked. three logged it and carried on, every bloom draw was dropped with
+`INVALID_OPERATION`, and the pyramid stayed at its clear colour.
+
+Every other shader in the project uses the `weft` prefix. This one file broke the convention,
+and the convention turns out to be load-bearing rather than cosmetic.
+
+**Fixed.** Renamed to `weftLuminance`, with the failure recorded at the definition so the next
+person does not have to rediscover why the prefix matters. `tools/programs.spec.ts` is new: it
+sweeps the whole document at `?tier=1` and fails on any console error or warning that is not on
+a short allow-list. It was verified by reintroducing the defect — it fails on it and passes
+without it. It has to pin tier 1, because §5.6 disables bloom on tier 3 and an unpinned run
+would never compile the program at all.
+
+With bloom actually reaching the frame, the same capture moves 3.76% of pixels against the
+broken build, at a maximum channel delta of 196.
+
+---
+
 ## What this pass says about the build
 
-Three of the twelve — RT-02, RT-03, RT-05 — were **fixes that looked correct in the diff and
-did nothing at runtime**, and RT-04 was a fourth in its first attempt. Every one of them was
-caught by a test that measured an *outcome* (are these two frames identical? did `scrollY`
-change? which elements did Tab actually reach?) rather than asserting that code existed.
+Four of the thirteen — RT-02, RT-03, RT-05 and RT-13 — were **changes that looked correct in
+the diff and did nothing at runtime**, and RT-04 was a fifth in its first attempt. Every one of
+them was caught by a test that measured an *outcome* (are these two frames identical? did
+`scrollY` change? which elements did Tab actually reach? did the program link?) rather than
+asserting that code existed.
+
+RT-13 adds a second lesson, and a sharper one: **read the console before reasoning about the
+GPU.** A program that fails to link is not an exception and does not stop the frame. It is one
+console line and a pass that quietly is not there. Three rounds of careful reasoning about a
+render graph that was already correct cost more than one listener would have.
 
 That is the same lesson as the ACES-crushing-the-void bug in D-016, and it is why the harness
 in this repository leans on captured pixels and before/after measurements rather than on unit
@@ -255,4 +309,4 @@ tests of intent.
 
 The a11y suite grew from 2 tests to 5 and now covers keyboard navigation, the skip link, and
 the reduced-motion path. `tests/prerender.test.ts` is new. Total: **63 unit tests, 15 shader
-tests, 5 a11y tests.**
+tests, 5 a11y tests, and a program-link sweep.**

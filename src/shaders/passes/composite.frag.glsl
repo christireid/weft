@@ -46,11 +46,22 @@ uniform float uBlueWeight;      // mix of stochastic over ordered
 uniform float uExposure;
 uniform float uToneMap;         // 1 tone map, 0 pass through
 uniform vec3 uVoid;             // --void, already in sRGB
+uniform sampler2D uBloom;
+uniform float uBloomIntensity;  // 0 on tier 3 (§5.6: dither only)
 
 varying vec2 vUv;
 
 void main() {
   vec3 colour = texture2D(uScene, vUv).rgb * uExposure;
+
+  /*
+   * Bloom is added in LINEAR space, before tone mapping — which is the only
+   * order that makes physical sense. Light scattered inside a lens arrives at
+   * the sensor and is then subject to the same response curve as everything
+   * else; adding it after the tone map would put energy above the curve that
+   * the curve never saw, and it would clip rather than roll off.
+   */
+  colour += texture2D(uBloom, vUv).rgb * uBloomIntensity;
 
   colour = mix(colour, weftACES(colour), uToneMap);
   colour = weftLinearToSRGB(colour);

@@ -384,6 +384,48 @@ pass.
 
 ---
 
+## D-020 · Every GLSL helper carries the `weft` prefix, and a test enforces it
+
+three prepends its own chunks to every `ShaderMaterial` fragment shader.
+`tonemapping_pars_fragment` alone defines `luminance`, and the surrounding chunks define more.
+A helper in one of our passes that happens to share a name with one of them is not an override
+— it is a redefinition, and if the qualifiers differ at all the program fails to link.
+
+The failure mode is what makes this worth a decision rather than a style note: three **logs**
+the link failure and carries on. The frame still renders. The pass is simply absent. Bloom
+shipped that way and cost three rounds of investigation (RT-13) before a console listener said
+so in one line.
+
+Two consequences, both taken:
+
+1. Every function defined in `src/shaders/**` is prefixed `weft`. It is already the convention
+   everywhere else in the project; `bloom.frag.glsl` was the one file that broke it, which is
+   how the convention was discovered to be load-bearing.
+2. `tools/programs.spec.ts` sweeps the whole document with the tier pinned to 1 and fails on
+   any console error or warning outside a short allow-list. It has to pin the tier: §5.6
+   disables bloom below tier 2, so an unpinned run in a software-rasterised container settles
+   at tier 3 and never compiles the program it is meant to be checking.
+
+The alternative — a lint rule listing three's reserved names — was rejected. The list is
+version-specific and would rot silently, which is the same class of problem one layer up. A
+test that asks the GPU cannot rot.
+
+---
+
+## D-021 · `?tier=1..4` pins the device tier
+
+§5.6's tiering does its job here: this container has no GPU, settles at tier 3, and tier 3
+disables bloom. Every capture taken without a pin therefore documents a deliberately degraded
+rendering path as though it were the piece — and, worse, never compiles the tier-1 programs, so
+a whole class of defect is invisible to the test suite.
+
+`?tier=1..4` sets the tier at boot and latches `locked`, reusing the flag tier 4 already uses
+rather than introducing a second notion of "stop adapting". Read once, from the query string,
+and not reachable without typing it. It is also how the four tiers get compared side by side
+in L5 without four machines.
+
+---
+
 ## Delegated copy (§4.3)
 
 Recorded here so it can be edited in one place, per §4.3. Written in the §4.1 voice: present

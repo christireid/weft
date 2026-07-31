@@ -34,6 +34,24 @@ import {
 
 const BOOT_PROBE_MS = 500;
 
+/**
+ * `?tier=1..4` pins the device tier and stops the sampler adapting.
+ *
+ * For the media pipeline (§7 L6), which must capture what a visitor on real
+ * hardware sees. This container has no GPU and settles at tier 3, where §5.6
+ * disables bloom — so an unpinned capture would document a degraded rendering
+ * path as if it were the piece. It is also how the four tiers get compared
+ * side by side in L5 without four machines.
+ *
+ * Read once at boot. Not a feature, and not reachable without typing it.
+ */
+function pinnedTier(): Tier | null {
+  if (typeof window === 'undefined') return null;
+  const raw = new URLSearchParams(window.location.search).get('tier');
+  const value = Number(raw);
+  return value === 1 || value === 2 || value === 3 || value === 4 ? value : null;
+}
+
 export interface TierController {
   readonly sampler: FrameSampler;
   readonly state: TierState;
@@ -44,11 +62,19 @@ export interface TierController {
 }
 
 export function createTierController(initial: Tier = 3): TierController {
+  const pinned = pinnedTier();
+  const state = createTierState(pinned ?? initial);
+  if (pinned !== null) {
+    // `locked` is what stepTier checks to stop adapting; reusing it here means
+    // a pinned tier behaves exactly like tier 4's latch rather than being a
+    // second, parallel notion of "do not change".
+    state.locked = true;
+  }
   return {
     sampler: createSampler(),
-    state: createTierState(initial),
+    state,
     elapsed: 0,
-    probeComplete: false,
+    probeComplete: pinned !== null,
     onChange: null,
   };
 }
