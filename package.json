@@ -28,7 +28,9 @@
     "shaders": "playwright test tools/shaders.spec.ts",
     "gate:l1": "playwright test tools/gate-l1.spec.ts",
     "media": "playwright test tools/media.spec.ts",
-    "media:gifs": "node tools/make-gifs.mjs"
+    "media:gifs": "node tools/make-gifs.mjs",
+    "media:crops": "node tools/make-crops.mjs",
+    "gif:frame": "node tools/gif-frame.mjs"
   },
   "dependencies": {
     "@react-three/drei": "10.7.7",

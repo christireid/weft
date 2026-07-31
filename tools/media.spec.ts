@@ -301,3 +301,154 @@ test('stills', async ({ page }) => {
   await page.screenshot({ path: join(MEDIA, 'og.png') });
   console.log('[media] og.png 1200x630');
 });
+
+/* ---- the second pass -------------------------------------------------- *
+ *
+ * Everything above is the README's spine: one sequence and one still per
+ * plate. What follows is the rest of what works and was not being shown —
+ * the plate boundary, the states (debug, Specimen Mode, reduced motion), the
+ * tier ladder §5.6 actually produces, and the exit transformation of Plate III
+ * as a sequence rather than as a single frame.
+ *
+ * Split into its own tests rather than folded into `stills` so a failure in
+ * one costs one re-run, and so the spine can be recaptured on its own.
+ * ---------------------------------------------------------------------- */
+
+test('plate III: the lattice forms', async ({ page }) => {
+  /*
+   * §2's exit transformation as a sequence. The lattice is a function of scroll
+   * rather than of time, so this one *does* move through the document — from
+   * just before the attractor engages to the end of the plate.
+   *
+   * The warmup is what makes it a transformation rather than a tidy-up: the
+   * cloud has to be fully frayed before the lattice takes it, or the GIF shows
+   * a thread becoming a grid and skips the part in between.
+   */
+  await captureSequence(
+    page,
+    'plate-03-lattice',
+    30,
+    (i) => 0.468 + (i / 29) * 0.031,
+    undefined,
+    { settleMs: 1800, warmupMs: 26_000 },
+  );
+});
+
+test('stills: boundaries, states and tiers', async ({ page }) => {
+  await mkdir(MEDIA, { recursive: true });
+
+  const scrollable = await page.evaluate(
+    () => document.documentElement.scrollHeight - window.innerHeight,
+  );
+  const goto = async (at: number, settleMs = 800) => {
+    await page.evaluate((y) => {
+      window.scrollTo(0, y);
+    }, at * scrollable);
+    await page.waitForTimeout(settleMs);
+  };
+
+  // The plate boundary §1.2 says must read as a transformation, not a cut.
+  await goto(0.16, 1200);
+  await page.screenshot({ path: join(MEDIA, 'still-boundary.png') });
+  console.log('[media] still-boundary.png at 0.160');
+
+  // Plate II with the wedge swept far off axis, so the fan crosses the frame
+  // at a different angle from the one the spine still shows.
+  await goto(0.245, 900);
+  await page.mouse.move(560, 450);
+  await page.mouse.down();
+  for (let i = 1; i <= 22; i++) await page.mouse.move(560 + i * 20, 450);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: join(MEDIA, 'still-plate-02-swept.png') });
+  await page.mouse.up();
+  console.log('[media] still-plate-02-swept.png at 0.245');
+
+  // Plate III early: the filament still coherent, coming apart at its ends.
+  await goto(0.36, 9000);
+  await page.screenshot({ path: join(MEDIA, 'still-plate-03-early.png') });
+  console.log('[media] still-plate-03-early.png at 0.360');
+
+  // Plate III with the pointer driven through the cloud — the repulsor's wake.
+  await goto(0.4, 30_000);
+  await page.mouse.move(520, 420);
+  await page.mouse.down();
+  for (let i = 1; i <= 16; i++) {
+    await page.mouse.move(520 + i * 28, 420 + i * 8);
+    await page.waitForTimeout(120);
+  }
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: join(MEDIA, 'still-plate-03-wake.png') });
+  await page.mouse.up();
+  console.log('[media] still-plate-03-wake.png at 0.400');
+
+  // The L1 debug HUD. Not shipped to visitors — §5.1 tree-shakes the dev UI —
+  // but it is the instrument every number in the README was read from.
+  await goto(0.245, 900);
+  await page.keyboard.press('d');
+  // Long enough to be sure the HUD has painted. It writes on every sixth frame
+  // (PAINT_EVERY, so that a debug overlay cannot itself be what shows up in the
+  // L1 heap-growth gate), and a frame here costs far more than on real
+  // hardware — at 700 ms the first capture caught the static shell with every
+  // value still at its placeholder, which reads as a HUD that does not work.
+  await page.waitForTimeout(4000);
+  await page.screenshot({ path: join(MEDIA, 'still-debug.png') });
+  await page.keyboard.press('d');
+  console.log('[media] still-debug.png at 0.245');
+});
+
+test('stills: the tier ladder', async ({ page }) => {
+  /*
+   * §5.6's four tiers, on one machine, from the same scroll offset.
+   *
+   * This is the only way to show the ladder without four devices, and it is why
+   * `?tier=` exists at all (D-021). Tier 1 is the full post chain; tier 3 drops
+   * bloom and keeps the dither, which §10 forbids removing because it is what
+   * stops the void banding on exactly the cheap panels that land there.
+   */
+  for (const tier of [1, 2, 3] as const) {
+    await page.goto(`/?tier=${String(tier)}`, { waitUntil: 'load' });
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(1600);
+    const scrollable = await page.evaluate(
+      () => document.documentElement.scrollHeight - window.innerHeight,
+    );
+    await page.evaluate((y) => {
+      window.scrollTo(0, y);
+    }, 0.245 * scrollable);
+    await page.waitForTimeout(1400);
+    await page.screenshot({ path: join(MEDIA, `still-tier-${String(tier)}.png`) });
+    console.log(`[media] still-tier-${String(tier)}.png`);
+  }
+});
+
+test('stills: reduced motion and Specimen Mode', async ({ page }) => {
+  /*
+   * The two states §6.2 and §7 require, photographed rather than asserted.
+   *
+   * Both are held poses by construction — reduced motion states the wave rather
+   * than integrating it (RT-02), and Specimen Mode stops stepping once settled —
+   * so a still is the honest representation of each.
+   */
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/?tier=1', { waitUntil: 'load' });
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: join(MEDIA, 'still-reduced-motion.png') });
+  console.log('[media] still-reduced-motion.png');
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/?tier=1', { waitUntil: 'load' });
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(1600);
+  const scrollable = await page.evaluate(
+    () => document.documentElement.scrollHeight - window.innerHeight,
+  );
+  await page.evaluate((y) => {
+    window.scrollTo(0, y);
+  }, 0.05 * scrollable);
+  await page.waitForTimeout(1200);
+  await page.keyboard.press('s');
+  await page.waitForTimeout(3000);
+  await page.screenshot({ path: join(MEDIA, 'still-specimen.png') });
+  console.log('[media] still-specimen.png');
+});

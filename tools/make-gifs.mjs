@@ -56,6 +56,9 @@ const SEQUENCES = [
   // Slower: the fray develops over simulation time rather than over scroll, and
   // at 14 fps the strands move faster than the eye can follow a single one.
   ['plate-03', 10, 760, 5],
+  // The exit transformation. Slower still: the lattice settles over the whole
+  // sequence and at 14 fps the eye reads it as a cut rather than as a collapse.
+  ['plate-03-lattice', 9, 760, 5],
 ];
 
 /** Box-filter downscale. Lanczos would be sharper; at these ratios, on a piece

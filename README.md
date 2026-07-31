@@ -48,7 +48,18 @@ and it answers.
 
 > `1-D wave equation, u_tt = c²u_xx − 2γu_t, solved on a 512×1 ping-pong target at Courant 0.94`
 
-<img src="docs/media/still-plate-01.png" alt="Plate I at rest: the masthead in Bodoni Moda above a shallow catenary filament spanning the full width" width="100%">
+<img src="docs/media/still-plate-01.png" alt="Plate I: the masthead in Bodoni Moda above a filament pulled well clear of its resting catenary, a travelling pulse visible along it" width="100%">
+
+<table>
+<tr>
+<td width="50%"><img src="docs/media/detail/detail-filament.png" alt="A 1:1 crop of the filament: a white core about two pixels wide with a soft halo, and faint colour along its edges" width="100%"></td>
+<td width="50%"><img src="docs/media/detail/detail-type.png" alt="A 1:1 crop of the WEFT wordmark with the glowing filament passing behind its lower edge" width="100%"></td>
+</tr>
+<tr>
+<td><em>1:1. The core is two pixels; the wings are the spectral profile, and the halo is the bloom.</em></td>
+<td><em>1:1. §2 asks that the thread cross the type. It does.</em></td>
+</tr>
+</table>
 
 The wave is **simulated, not tweened**, and that distinction is the plate. §5.5 of the spec
 forbids easing anything with mass, and everything the brief asks for falls out of the
@@ -74,6 +85,16 @@ by refraction. There is no brand accent.**
 
 <img src="docs/media/still-plate-02.png" alt="Plate II: a white beam crossing the frame into a wireframe glass wedge, leaving as a continuous spectrum" width="100%">
 
+<img src="docs/media/still-plate-02-swept.png" alt="The same plate with the wedge rotated further, so the spectrum leaves at a shallower angle across the frame" width="100%">
+
+<em>The same wedge, rotated. The fan is a function of the glass, not of the gesture.</em>
+
+<img src="docs/media/detail/detail-prism.png" alt="A 1:1 crop of the beam leaving the wedge: white on one side, a continuous violet-to-red spectrum on the other, with no visible banding between wavelengths" width="100%">
+
+<em>1:1 at the exit face. Sixteen wavelengths, and no seam between any two of them — that
+continuity is what the spectral accumulation buys and what a three-tap RGB split cannot fake.
+The red end is compressed relative to the blue because n(λ) goes as 1/λ².</em>
+
 The wedge is draggable — rotating it sweeps the spectrum across the viewport. There is no
 slider, because there is no chrome on this page at all.
 
@@ -88,6 +109,24 @@ end and red at the other.
 > `curl noise, v = ∇ × ψ(p), advected on a 512×512 float ping-pong pair, no CPU-side particle loop`
 
 <img src="docs/media/still-plate-03.png" alt="Plate III: the filament dispersed into ribbons of particles, coloured violet through green to red from left to right across the frame" width="100%">
+
+<table>
+<tr>
+<td width="50%"><img src="docs/media/still-plate-03-early.png" alt="Plate III early: the filament still largely coherent, fraying at its ends" width="100%"></td>
+<td width="50%"><img src="docs/media/still-plate-03-wake.png" alt="Plate III with the pointer dragged through the cloud, opening a wake that the flow is closing behind it" width="100%"></td>
+</tr>
+<tr>
+<td><em>Early in the plate. The thread is still a thread.</em></td>
+<td><em>The pointer, dragged through. §2 asks for a repulsor with a soft falloff; the curl closes
+the wake behind it within about a second.</em></td>
+</tr>
+</table>
+
+<img src="docs/media/detail/detail-particles.png" alt="A 1:1 crop of the particle cloud showing individual particles drawn as short oriented streaks, longer where the flow is faster" width="100%">
+
+<em>1:1. Each particle is a point sprite with an oriented capsule drawn inside it, so a fast one
+is a streak and a slow one is a dot. That is the one line of vertex shader §2 says produces most
+of the visual interest, and at this scale you can count the hairs.</em>
 
 Curl noise rather than plain noise, and the difference is the whole plate. The curl of any
 vector field is divergence-free by construction — the divergence of a curl is identically
@@ -105,7 +144,13 @@ to average against, and the cloud reads as RGB confetti — it looked like fine 
 at a third scale and only failed when a crop was opened at 1:1. Ordered, adjacent particles
 carry adjacent wavelengths, so the fray separates into coloured strands.
 
+![The curl decaying and a lattice attractor engaging: a turbulent cloud collapsing into a regular rectangular grid](docs/media/plate-03-lattice.gif)
+
 <img src="docs/media/still-plate-03-lattice.png" alt="Plate III's exit: the particle cloud resolved into a woven rectangular sheet crossed by broad horizontal bands of light, seen at an oblique angle" width="100%">
+
+<img src="docs/media/detail/detail-lattice.png" alt="A 1:1 crop of the lattice showing individual particles settled onto a regular grid of rows and columns" width="100%">
+
+<em>1:1. Every particle on its own site, once.</em>
 
 At the end of the plate the curl decays and a lattice attractor engages. Each particle has its
 own site, indexed by its position in the simulation texture, so the cloud fills the grid
@@ -225,6 +270,13 @@ A **20.3× reduction**. Three device pixels at DPR 2 is 1.5 CSS pixels — below
 which an edge is resolvable. The test also asserts that the _undithered_ control bands, because
 a test whose control passes is measuring nothing.
 
+<img src="docs/media/detail/detail-dither.png" alt="A 1:1 crop of an empty region of the background, showing a fine structured halftone pattern rather than a flat colour" width="100%">
+
+<em>1:1, from a region of the frame that contains nothing at all. The peak level here is 11 of
+255 and the mean is 7 — this is the void, and it is not flat. Downscale this image and the
+pattern averages away into a colour, which is the whole reason the crop is here rather than a
+full-frame still.</em>
+
 One bug worth recording, because it was caught by looking rather than by reasoning: with the
 scene buffer cleared to `--void`, the captured background came out `rgb(1.5, 1.5, 1.8)` instead
 of `#050507`. ACES compresses the bottom of its range by roughly 4×, which is correct behaviour
@@ -233,24 +285,95 @@ produces is treated as light, and the void is the floor light sits on.
 
 ---
 
+## The tier ladder
+
+§5.6 defines four device tiers, detected from a 500 ms boot probe and then adapted live from a
+rolling p95 frame-time sampler. These three are the same scroll offset on the same machine,
+separated only by `?tier=`, which exists so the ladder can be photographed without four
+computers (D-021).
+
+<table>
+<tr>
+<td width="33%"><img src="docs/media/still-tier-1.png" alt="Plate II rendered at tier 1: the beam and its spectrum carry a soft bloom halo" width="100%"></td>
+<td width="33%"><img src="docs/media/still-tier-2.png" alt="Plate II rendered at tier 2, visually indistinguishable from tier 1 at this offset" width="100%"></td>
+<td width="33%"><img src="docs/media/still-tier-3.png" alt="Plate II rendered at tier 3: the same geometry without the bloom halo" width="100%"></td>
+</tr>
+<tr>
+<td><strong>Tier 1</strong> — full post chain</td>
+<td><strong>Tier 2</strong> — bloom and dither</td>
+<td><strong>Tier 3</strong> — dither only</td>
+</tr>
+</table>
+
+Measured as the fraction of the frame above the void floor: **6.88%**, **6.89%**, **6.05%**.
+Tiers 1 and 2 are within a rounding error of each other at this offset because §5.6 gives both
+of them bloom, and the difference between them — DPR cap, spectral sample count, simulation
+resolution — does not show on a plate this sparse. Tier 3 drops bloom and loses most of a
+percent of the frame with it.
+
+What tier 3 does **not** drop is the dither. §10 forbids removing it, and the reason is the
+tier it survives on: the cheap panels that land in tier 3 are exactly the ones whose gradients
+band without it.
+
+Tier 4 is not shown because there is nothing to photograph. It is the no-WebGL2 path (§6.3) —
+the document, the type, and no canvas at all.
+
+---
+
+## The states
+
+Three things the piece does that are not on the scroll path.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/media/still-reduced-motion.png" alt="The masthead under prefers-reduced-motion: the filament is present and static, holding a stated pose rather than animating" width="100%"></td>
+<td width="50%"><img src="docs/media/still-specimen.png" alt="Specimen Mode: Plate I held at a fixed pose with the simulation stopped" width="100%"></td>
+</tr>
+<tr>
+<td><strong><code>prefers-reduced-motion</code></strong> — the plate is <em>stated</em>, not
+animated. This was one of the red team's finds: the first version pinned the clock, which does
+nothing to an integrator, and the wave kept propagating at a constant timestep. It now takes a
+branch that writes the pose directly, so the frame is idempotent (RT-02).</td>
+<td><strong>Specimen Mode</strong> (<code>S</code>) — every simulation held at a fixed pose, for
+photographing the piece. Nothing steps once it has settled, so two captures a minute apart are
+byte-identical.</td>
+</tr>
+</table>
+
+<img src="docs/media/still-boundary.png" alt="The boundary between Plate I and Plate II, with the filament's exit transformation and the beginning of the beam both present in the same frame" width="100%">
+
+<em>The Plate I → II boundary. §1.2 asks that a plate change read as a transformation rather
+than a cut, which means both plates are live in the same frame — the router allows at most two,
+and the plate table's ranges are asserted to tile [0,1] with no gap and no overlap.</em>
+
+<img src="docs/media/still-debug.png" alt="The debug overlay: a readout showing scroll progress, the primary plate, live plate count, frame rate, device tier and per-plate local time and weight, with the touch field visualised in the corner" width="100%">
+
+<em><code>D</code> toggles the L1 instrument. Every number in this README was read from it or
+from the harness behind it — scroll progress, which plates are live and at what local time and
+blend weight, the device tier and its switch count, and the shared touch field drawn in the
+corner. It repaints on every sixth frame rather than every frame, so that the overlay cannot
+itself be what shows up in the heap-growth gate.</em>
+
+---
+
 ## Verification
 
 Every claim above has an artifact behind it in [`docs/verification/`](docs/verification).
 
-| What                                      | Result                                                                                                                   |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Canvas clears to `--void`                 | delta **0** at DPR 2, proven against a magenta-backed control so the page background cannot pass the test for the canvas |
-| Lighthouse accessibility                  | **100** · best-practices 100 · SEO 100 · zero failed audits                                                              |
-| axe-core                                  | **0 violations**                                                                                                         |
-| Plate router, full 0→1 pass               | 201 samples, **0 dropped**, never more than 2 live, 6/6 plates visited                                                   |
-| Leaked GL objects during a scroll pass    | **0** textures, framebuffers, renderbuffers, buffers, programs                                                           |
-| Heap growth, 600 frames of real scrolling | **−44 KB** (−73.7 B/frame) — the heap _shrank_                                                                           |
-| Curl field, \|∇·v\| / ‖∇v‖_F              | **6.98 × 10⁻³** over 1024 scattered points                                                                               |
-| Bayer 8×8                                 | visits all **64/64** levels exactly once                                                                                 |
-| GPU easing vs. CSS `cubic-bezier`         | max delta **1.4 × 10⁻⁷**                                                                                                 |
+| What                                      | Result                                                                                                                                 |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Canvas clears to `--void`                 | delta **0** at DPR 2, proven against a magenta-backed control so the page background cannot pass the test for the canvas               |
+| Lighthouse accessibility                  | **100** · best-practices 100 · SEO 100 · zero failed audits                                                                            |
+| axe-core                                  | **0 violations**                                                                                                                       |
+| Plate router, full 0→1 pass               | 201 samples, **0 dropped**, never more than 2 live, 6/6 plates visited                                                                 |
+| Leaked GL objects during a scroll pass    | **0** textures, framebuffers, renderbuffers, buffers, programs                                                                         |
+| Heap growth, 600 frames of real scrolling | **−44 KB** (−73.7 B/frame) — the heap _shrank_                                                                                         |
+| Curl field, \|∇·v\| / ‖∇v‖_F              | **6.98 × 10⁻³** over 1024 scattered points                                                                                             |
+| Bayer 8×8                                 | visits all **64/64** levels exactly once                                                                                               |
+| GPU easing vs. CSS `cubic-bezier`         | max delta **1.4 × 10⁻⁷**                                                                                                               |
 | Shader programs that fail to link         | **0**, swept across the whole document at tier 1 — a program that does not link is a console line and a missing pass, not an exception |
-| Plate I bleeding into Plate III           | outer 4% of the frame within **4 levels** of `--void` — the dither, and nothing else. 245 with the defect reinstated     |
-| CPU spectral fit vs. the GLSL it copies   | **exact**, compared against the bytes of the shader rather than against a restatement of the constants                   |
+| Plate I bleeding into Plate III           | outer 4% of the frame within **4 levels** of `--void` — the dither, and nothing else. 245 with the defect reinstated                   |
+| CPU spectral fit vs. the GLSL it copies   | **exact**, compared against the bytes of the shader rather than against a restatement of the constants                                 |
 
 The shader chunk tests are the ones worth opening. Each chunk is checked against something
 **independent of itself** — tabulated CIE data, an independent JS bezier solver, an analytic

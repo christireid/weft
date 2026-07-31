@@ -2,7 +2,7 @@
 
 **Current loop:** L3 · task 1 (Plate IV) built but blocked, see B-001. Plates I–III shipped
 **Last updated:** 2026-07-31
-**`pnpm verify`:** green — 69 unit tests, 15 shader tests, 6 a11y tests, plus a program-link sweep and a plate-isolation measurement
+**`pnpm verify`:** green — 97 unit tests, 15 shader tests, 6 a11y tests, plus a program-link sweep and a plate-isolation measurement
 **BLOCKERS:** one open — B-001, Plate IV's refraction destroys its specimen
 
 ---
@@ -22,7 +22,9 @@ pnpm a11y                # axe-core          -> docs/verification/axe.json
 pnpm perf                # 4-series sampler  -> docs/verification/perf.json
 pnpm gate:l1             # the L1 exit gate  -> docs/verification/gate-l1.json  (~5 min, D-019)
 pnpm preview & pnpm lh   # Lighthouse a11y   -> docs/verification/lighthouse.json
-pnpm media && pnpm media:gifs     # regenerate the README media
+pnpm media && pnpm media:gifs     # regenerate the README media (~35 min)
+pnpm media:crops         # 1:1 detail crops from the stills
+pnpm gif:frame docs/media/plate-03.gif 30   # decode one GIF frame, and LOOK at it
 pnpm fit:cmf             # refit the colour-matching curves
 ```
 
