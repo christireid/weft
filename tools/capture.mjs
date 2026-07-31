@@ -23,6 +23,8 @@ function flag(name, fallback) {
 
 const at = flag('at', '0');
 const label = flag('label', '');
+/** `--debug` presses D on the page first, so the L1 HUD is in the still. */
+const debug = argv.includes('--debug') ? '1' : '';
 
 const parsed = Number(at);
 if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
@@ -35,7 +37,12 @@ const result = spawnSync(
   ['test', 'tools/capture.spec.ts', ...(argv.includes('--headed') ? ['--headed'] : [])],
   {
     stdio: 'inherit',
-    env: { ...process.env, WEFT_CAPTURE_AT: String(parsed), WEFT_CAPTURE_LABEL: label },
+    env: {
+      ...process.env,
+      WEFT_CAPTURE_AT: String(parsed),
+      WEFT_CAPTURE_LABEL: label,
+      WEFT_CAPTURE_DEBUG: debug,
+    },
     shell: process.platform === 'win32',
   },
 );

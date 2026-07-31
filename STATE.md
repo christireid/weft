@@ -1,6 +1,6 @@
 # STATE
 
-**Current loop:** L0 complete → entering L1
+**Current loop:** L1 · tasks 1–2 done, 3–6 in progress
 **Last updated:** 2026-07-31
 **`pnpm verify`:** green
 **BLOCKERS:** none open
@@ -21,8 +21,10 @@ pnpm a11y                # axe-core → docs/verification/axe.json
 pnpm preview & pnpm lh   # Lighthouse a11y → docs/verification/lighthouse.json
 ```
 
-**Next task: L1 task 1** — Lenis + ScrollTrigger + vanilla zustand scroll store, with a
-debug overlay showing global progress, active plate, and local `t` to 3 decimals.
+**Next task: L1 task 3** — the shared touch-texture FBO (§5.3) with a debug view.
+
+`pnpm capture --at <t> --debug` puts the L1 HUD in the still; `D` toggles it live, `S`
+toggles Specimen Mode.
 
 **Environment notes that will otherwise cost you an hour:** there is no GPU here
 (SwiftShader), `playwright install` cannot reach its CDN (Chromium is resolved from
@@ -47,6 +49,17 @@ against the §3 art direction. Anything below 8 goes back to step 3.
 | 4   | Empty `<Canvas>` mounting, resizing, clearing to `--void` with correct colour management                               | 9     | Clear colour is exact to 0/255 at DPR 2, proven against an isolating control rather than asserted; renderer costs 0.4 ms over a bare clear.                                                                                                                     |
 
 **Loop score: 9.**
+
+### L1 · Render core
+
+| #   | Task                                                                                                            | Score | Critique                                                                                                                                                                                                                                                                         |
+| --- | --------------------------------------------------------------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Lenis + ScrollTrigger + zustand scroll store, debug overlay showing progress / active plate / local `t` to 3 dp | 9     | One rAF loop achieved rather than claimed — Lenis runs `autoRaf: false` and is stepped from the single `useFrame`, and three architecture tests fail the build if a second loop, canvas or Lenis instance appears.                                                               |
+| 2   | Plate router: declarative table, activating and deactivating simulations                                        | 9     | Boundary hand-off verified visually and by a 2001-sample exhaustive sweep; the one real design call was letting local `t` run past 1 and below 0 in the blend band so each plate keeps authority over its own transition instead of being cross-faded between frozen end states. |
+| 3   | Touch texture FBO (§5.3) with debug view                                                                        | —     | not started                                                                                                                                                                                                                                                                      |
+| 4   | Shader chunk library (§5.4), unit test per chunk                                                                | —     | not started                                                                                                                                                                                                                                                                      |
+| 5   | Device tiering + rolling frame-time sampler                                                                     | —     | not started                                                                                                                                                                                                                                                                      |
+| 6   | Post chain with custom dither pass, zero banding on a dark gradient                                             | —     | not started                                                                                                                                                                                                                                                                      |
 
 ---
 

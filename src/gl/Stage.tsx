@@ -7,6 +7,7 @@ import {
   type WebGLRenderer,
 } from 'three';
 import { VOID_HEX } from '../config/identity';
+import { FrameLoop } from './FrameLoop';
 
 /*
  * Colour management is set once, here, and never touched again.
@@ -53,7 +54,9 @@ export function Stage() {
         }}
         camera={{ fov: 35, near: 0.1, far: 100, position: [0, 0, 6] }}
         frameloop="always"
-      />
+      >
+        <FrameLoop />
+      </Canvas>
     </div>
   );
 }

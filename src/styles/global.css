@@ -104,6 +104,40 @@ canvas {
   font-variation-settings: 'opsz' clamp(24, 6vw, 96);
 }
 
+/*
+ * A plate's section is the scroll runway for the plate the renderer is drawing
+ * behind it. Its height comes from the plate table (src/config/plates.ts), so
+ * the offset at which its type is on screen is by construction the offset at
+ * which its simulation is live.
+ *
+ * The type sits at the top of the runway and the rest is deliberately empty:
+ * the plate below is the content, and crowding it with copy would be a
+ * different site. §10 forbids parallax here, so the type simply scrolls.
+ */
+.plate {
+  position: relative;
+  max-width: 1600px;
+  margin-inline: auto;
+  padding-top: 22svh;
+}
+
+.plate__title {
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+  font-weight: inherit;
+  font-size: inherit;
+}
+
+.plate__subtitle {
+  max-width: var(--measure-narrow);
+}
+
+.display--m {
+  font-size: var(--step-display-m);
+  letter-spacing: var(--track-display-m);
+}
+
 .lede {
   font-size: var(--step-body-l);
   color: var(--ink-60);
@@ -149,6 +183,59 @@ canvas {
   content: '';
   height: var(--rule);
   background: var(--ink-35);
+}
+
+/* --- debug HUD (L1, dev only) -------------------------------------------- */
+
+/*
+ * Set in the same tokens as everything else. A dev tool with its own palette is
+ * a dev tool you stop trusting the moment it disagrees with the page.
+ */
+.hud {
+  position: fixed;
+  top: var(--gutter);
+  right: var(--gutter);
+  z-index: 10;
+  display: grid;
+  gap: 0.35rem;
+  min-width: 22ch;
+  padding: 0.9rem 1rem;
+  background: color-mix(in srgb, var(--void) 82%, transparent);
+  border: var(--rule) solid var(--ink-12);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.hud__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.hud__key {
+  color: var(--ink-60);
+}
+
+/*
+ * Live rows are --ink-100, dormant ones --ink-60. Both clear AA; the dormant
+ * state reads as recessive without dropping below it. --ink-35 would have been
+ * the obvious choice and would have tripped the guard in tests/contrast.test.ts,
+ * which is the guard working rather than the guard being inconvenient.
+ */
+.hud__val {
+  color: var(--ink-60);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud__val[data-active='true'] {
+  color: var(--ink-100);
+}
+
+.hud__rule {
+  height: var(--rule);
+  margin: 0.35rem 0;
+  border: 0;
+  background: var(--ink-12);
 }
 
 /* --- focus -------------------------------------------------------------- */

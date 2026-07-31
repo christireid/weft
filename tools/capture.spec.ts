@@ -22,15 +22,44 @@ test('capture a still at the requested scroll offset', async ({ page }) => {
   });
   await page.waitForTimeout(500);
 
+  if (process.env.WEFT_CAPTURE_DEBUG) {
+    await page.keyboard.press('d');
+    await page.waitForTimeout(150);
+  }
+
   const scrollable = await page.evaluate(
     () => document.documentElement.scrollHeight - window.innerHeight,
   );
   if (scrollable > 0) {
+    /*
+     * Lenis smooths toward a target rather than jumping, so a scrollTo followed
+     * by a fixed wait would capture a frame mid-approach and the offset in the
+     * filename would be a lie. Drive it and then wait for the reading to settle.
+     */
     await page.evaluate((y) => {
       window.scrollTo(0, y);
     }, at * scrollable);
-    await page.waitForTimeout(500);
+
+    await page
+      .waitForFunction(
+        (target: number) => {
+          const y = window.scrollY;
+          return Math.abs(y - target) < 1.5;
+        },
+        at * scrollable,
+        { timeout: 8000 },
+      )
+      .catch(() => {
+        /* fall through to the settle wait and report the real offset below */
+      });
+    await page.waitForTimeout(400);
   }
+
+  const reached = await page.evaluate(() => {
+    const scrollableNow = document.documentElement.scrollHeight - window.innerHeight;
+    return scrollableNow > 0 ? window.scrollY / scrollableNow : 0;
+  });
+  expect(Math.abs(reached - at), 'requested vs reached scroll offset').toBeLessThan(0.01);
 
   const geometry = await page.evaluate(() => {
     const canvas = document.querySelector('canvas');

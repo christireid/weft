@@ -128,6 +128,60 @@ Lighthouse SEO reported 91 on the empty page, from a missing `robots.txt`. Shipp
 `sitemap.xml` needs the deployed origin, which is not known until L6; it is listed in
 `STATE.md` as an L6 task rather than shipped with a guessed URL.
 
+## D-011 · L1 · Disney's 12 principles apply to the DOM layer and the camera, not to the simulation
+
+A motion-design brief covering the 12 classical animation principles was applied to this
+build. Most of it lands cleanly. Two parts of it directly contradict the spec, and the spec
+wins both times — recorded here so the contradiction is a decision rather than an oversight.
+
+**Conflict 1 — easing physical motion.** The brief prescribes overshoot and elastic curves
+(`cubic-bezier(0.34, 1.56, 0.64, 1)`), anticipation as a scripted counter-move, and
+exaggeration via scale beyond 1.0. §5.5 says: _"Physical motion (thread, cloth, shards) is
+simulated, never eased. Do not tween something that has mass."_
+
+These are not really in tension once you see what the principles are _for_. Squash-and-
+stretch, anticipation and overshoot are how a keyframe system **fakes** mass it cannot
+simulate. WEFT simulates mass — a travelling wave with exponential amplitude decay, a verlet
+cloth with constraint projection, shards with angular momentum. Applying an elastic ease on
+top of a solver that already produces elasticity is double-counting, and it reads as wrong
+immediately: the thread gets a rubberiness that does not correspond to any tension.
+
+So the split is:
+
+| Layer                                                                          | Motion source                          |
+| ------------------------------------------------------------------------------ | -------------------------------------- |
+| DOM micro-motion — type reveal, annotation entrance, spool gauge, focus states | Eased, on the §5.5 curve family        |
+| Camera and staging choreography                                                | Scroll-scrubbed; no duration (§5.5)    |
+| Thread, particles, cloth, glass, shards                                        | Simulated. Never eased, never tweened. |
+
+Several principles apply to the simulated layer _as outcomes rather than as techniques_, and
+that is the correct way to get them here: **follow-through and overlapping action** emerge
+from wave propagation and damping; **arcs** are what a catenary and a curl-noise streamline
+already are; **secondary action** is the dispersion fringe responding to displacement,
+driven by the same physics rather than authored alongside it. If those read as absent once
+the plates exist, the fix is in the simulation constants, not in an added tween.
+
+**Conflict 2 — the easing curves themselves.** The brief gives `cubic-bezier(0.4, 0, 0.2, 1)`
+(Material's standard) and an enter/exit pair. §5.5 mandates `cubic-bezier(0.16, 1, 0.30, 1)`
+entering and `cubic-bezier(0.7, 0, 0.84, 0)` exiting, and the _reason_ it mandates them is
+that one family across DOM and GPU is what stops the piece feeling assembled from parts.
+Shipping two easing families would defeat the token. The spec's curves are already in
+`--ease-enter` / `--ease-exit` and are asserted in `tests/tokens.test.ts`; the brief's are
+not used.
+
+**Adopted without conflict:** transform/opacity only for anything animated on the DOM layer;
+`will-change` used sparingly and removed after; staging as motion hierarchy; timing bands
+(the brief's 100–200 ms micro is a superset of §5.5's 120–180 ms); consistent
+`transform-origin`. The brief's "prefer CSS over JavaScript when the animation is
+predictable" is also adopted and is why the spool gauge and type reveals are CSS/Framer and
+not GSAP tweens.
+
+**Not applicable:** the Remotion guidance in the same set. Remotion renders video frames to
+a file. §0.4 rule 3 forbids pre-rendered video anywhere in this site, and the colophon's
+central claim is that every frame is computed live on the visitor's machine. The one place
+video is produced at all is `docs/media/` in L6 — capture _of_ the site for the README, by
+Playwright and ffmpeg, which is a documentation artifact and not part of the page.
+
 ---
 
 ## Delegated copy (§4.3)
