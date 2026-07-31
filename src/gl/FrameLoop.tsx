@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useEffect, useMemo } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import { frame } from '../state/frame';
 import { updateRouter } from './plateRouter';
 import {
@@ -10,6 +10,11 @@ import {
   type ScrollReading,
 } from '../scroll/scroll';
 import { paintHud } from '../ui/debugHud';
+import { TouchField } from './touch';
+import { attachPointer } from './pointer';
+import { setTouchField } from './registry';
+import { appStore } from '../state/store';
+import { disposeTouchDebug, drawTouchDebug } from './touchDebugView';
 
 /**
  * The single frame loop (§5.2).
@@ -24,7 +29,8 @@ import { paintHud } from '../ui/debugHud';
  *     stepScroll        advance Lenis's smoothing
  *     readScroll        sample position into a pre-allocated struct
  *     updateRouter      decide which plates are live and their local t
- *     ...               touch FBO, active simulations, uniform writes
+ *     touch.step        stamp the shared pointer field, before anything reads it
+ *     ...               active simulations, uniform writes
  *
  * Nothing in here allocates. `scratch` is module scope; `frame` and
  * `frame.router` are singletons mutated in place. No `new`, no array literals,
@@ -42,13 +48,33 @@ const scratch: ScrollReading = { progress: 0, velocity: 0, direction: 0 };
  */
 const MAX_DELTA = 0.05;
 
+/**
+ * Any non-zero priority makes r3f hand rendering over to this callback instead
+ * of issuing its own `gl.render` after the loop. Required: r3f's automatic
+ * render happens *after* priority-0 callbacks and clears the buffer, so
+ * anything a subsystem draws — a debug inset, a post-processing composite —
+ * would be wiped by it.
+ */
+const RENDER_PRIORITY = 1;
+
 export function FrameLoop() {
+  const gl = useThree((state) => state.gl);
+  const size = useThree((state) => state.size);
+
+  const touch = useMemo(() => new TouchField(gl), [gl]);
+
   useEffect(() => {
     initScroll();
+    setTouchField(touch);
+    const detachPointer = attachPointer(touch);
     return () => {
+      detachPointer();
+      setTouchField(null);
+      touch.dispose();
+      disposeTouchDebug();
       destroyScroll();
     };
-  }, []);
+  }, [touch]);
 
   useFrame((state, delta) => {
     const elapsed = state.clock.elapsedTime;
@@ -66,10 +92,25 @@ export function FrameLoop() {
 
     updateRouter(frame.router, frame.progress);
 
+    // Before anything samples it: a plate reading last frame's field would lag
+    // the pointer by 16 ms, which §1.2 counts as a failure of response.
+    touch.step(gl, frame.delta, size.width / Math.max(1, size.height));
+
+    // The scene render is issued here rather than by r3f, because this callback
+    // has a non-zero renderPriority. That is the point: the post-processing
+    // chain (L1 task 6) composites between this render and the frame being
+    // presented, and anything drawn *after* an automatic render would be
+    // cleared by the next one.
+    gl.render(state.scene, state.camera);
+
+    if (appStore.getState().debug) {
+      drawTouchDebug(gl, touch.texture);
+    }
+
     // Last, so it reports the state the frame was actually drawn with.
     // No-ops in one branch when the HUD is off, which is the shipped path.
     paintHud();
-  });
+  }, RENDER_PRIORITY);
 
   return null;
 }

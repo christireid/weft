@@ -1,6 +1,6 @@
 # STATE
 
-**Current loop:** L1 · tasks 1–2 done, 3–6 in progress
+**Current loop:** L1 · tasks 1–3 done, 4–6 in progress
 **Last updated:** 2026-07-31
 **`pnpm verify`:** green
 **BLOCKERS:** none open
@@ -21,7 +21,9 @@ pnpm a11y                # axe-core → docs/verification/axe.json
 pnpm preview & pnpm lh   # Lighthouse a11y → docs/verification/lighthouse.json
 ```
 
-**Next task: L1 task 3** — the shared touch-texture FBO (§5.3) with a debug view.
+**Next task: L1 task 4** — the shader chunk library (§5.4), with a unit test per chunk that
+renders it to a 64×64 target and asserts known pixel values. Those tests run in Playwright
+against a real WebGL2 context, not in jsdom, which has no GL.
 
 `pnpm capture --at <t> --debug` puts the L1 HUD in the still; `D` toggles it live, `S`
 toggles Specimen Mode.

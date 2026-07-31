@@ -73,7 +73,9 @@ describe('no per-frame allocation in the frame loop (§5.2)', () => {
 
   it('constructs nothing inside the useFrame callback', () => {
     const text = code(loop?.text ?? '');
-    const body = /useFrame\(\([\s\S]*?\n {2}\}\);/.exec(text)?.[0] ?? '';
+    // Matches `useFrame((...) => { ... });` and the renderPriority form
+    // `useFrame((...) => { ... }, PRIORITY);`.
+    const body = /useFrame\(\([\s\S]*?\n {2}\}(?:,\s*[A-Za-z_$][\w$]*)?\);/.exec(text)?.[0] ?? '';
     expect(body.length, 'could not locate the useFrame body').toBeGreaterThan(50);
 
     // `new X()`, array literals and object literals all allocate.
@@ -82,6 +84,32 @@ describe('no per-frame allocation in the frame loop (§5.2)', () => {
     expect(body, 'allocation: object literal').not.toMatch(/=\s*\{/);
     // Template strings allocate a string per frame and are the usual accident.
     expect(body, 'allocation: template literal').not.toMatch(/`/);
+  });
+});
+
+describe('shared primitives (ADR-0002)', () => {
+  it('constructs the touch field in exactly one place', () => {
+    // §5.3's value is that it is built once and reused six times. A second
+    // instance would be a second pointer, silently.
+    const constructors = files.filter((f) => code(f.text).includes('new TouchField('));
+    expect(constructors.map((f) => f.path.replace(process.cwd(), '.'))).toEqual([
+      './src/gl/FrameLoop.tsx',
+    ]);
+  });
+
+  it('attaches pointer listeners in exactly one place', () => {
+    const listeners = files.filter((f) => /addEventListener\(\s*'pointer/.test(code(f.text)));
+    expect(listeners.map((f) => f.path.replace(process.cwd(), '.'))).toEqual([
+      './src/gl/pointer.ts',
+    ]);
+  });
+
+  it('shares one fullscreen triangle rather than one quad per pass', () => {
+    const fs = files.find((f) => f.path.endsWith('fullscreen.ts'));
+    expect(fs).toBeDefined();
+    // Three vertices, not six: a quad's shared diagonal double-rasterises.
+    const positions = /new Float32Array\(\[([^\]]*)\]\)/.exec(code(fs?.text ?? ''))?.[1] ?? '';
+    expect(positions.split(',').filter((s) => s.trim() !== '')).toHaveLength(9);
   });
 });
 
