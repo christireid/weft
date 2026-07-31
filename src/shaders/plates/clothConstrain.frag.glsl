@@ -45,6 +45,15 @@ uniform float uShear;
 uniform float uBend;
 uniform float uPinRelease;
 
+/**
+ * The two pinned corners, in simulation uv.
+ *
+ * Used for the long-range attachments below, which need to sample the pins
+ * directly rather than reach them through the constraint graph.
+ */
+uniform vec2 uPinA;
+uniform vec2 uPinB;
+
 /** Sphere collider (§2: "radius ~0.12 world units"). xyz centre, w radius. */
 uniform vec4 uCollider;
 /**
@@ -98,6 +107,27 @@ void constrain(
   weight += stiffness;
 }
 
+/**
+ * Pull `x` back inside its rest distance from a pin, if that pin is still held.
+ *
+ * Unilateral: only the "too far" case is corrected. Making it bilateral would
+ * turn every vertex into a spoke of a wheel centred on the corner and the sheet
+ * could not drape at all.
+ */
+vec3 attach(vec3 x, vec3 restHere, vec2 pinUv) {
+  vec4 pinRest = texture2D(uRest, pinUv);
+  // A released pin is not an anchor. `step` matches the test used for the
+  // vertex's own pin state, so the two cannot disagree about when it let go.
+  if (step(uPinRelease, pinRest.w) < 0.5) return x;
+
+  vec3 pin = texture2D(uPosition, pinUv).xyz;
+  vec3 away = x - pin;
+  float distance = length(away);
+  float limit = length(restHere - pinRest.xyz);
+  if (distance <= limit || distance < 1e-6) return x;
+  return pin + away * (limit / distance);
+}
+
 void main() {
   vec4 position = texture2D(uPosition, vUv);
   vec4 rest = texture2D(uRest, vUv);
@@ -135,6 +165,33 @@ void main() {
   // fewer neighbours is corrected as strongly as an interior one rather than
   // being left slack.
   if (weight > 0.0) x += correction / weight;
+
+  /*
+   * LONG-RANGE ATTACHMENTS
+   *
+   * Kim, Chentanez & Müller-Fischer, "Long Range Attachments — A Method to
+   * Simulate Inextensible Clothing in Computer Games", SCA 2012.
+   *
+   * Local constraints alone cannot hold a hanging sheet at any iteration count
+   * §2 would accept. Jacobi propagates information one cell per pass, so twelve
+   * passes reach twelve cells; on a 128-cell sheet the bottom rows feel no
+   * support from the pinned top for ten frames, and gravity is accelerating them
+   * the whole time. The result is not a soft sag — it is unbounded stretch. The
+   * first version of this plate collapsed to a diagonal streak roughly one pixel
+   * wide, which is what that looks like from the camera.
+   *
+   * The fix is a *unilateral* distance constraint straight to each pin: a vertex
+   * may be closer to a held corner than its rest separation, but never further.
+   * That is geometrically sound — a sheet can fold, it cannot grow — and it
+   * bounds the error after a single pass regardless of how far the local
+   * constraints have propagated. Cost is two texture fetches per pin.
+   *
+   * The rest separation is Euclidean in the flat rest pose, which for a flat
+   * sheet is exactly the geodesic distance. That equivalence is why the rest
+   * pose is worth keeping flat.
+   */
+  x = attach(x, rest.xyz, uPinA);
+  x = attach(x, rest.xyz, uPinB);
 
   /*
    * The pointer, as a sphere collider (§2: "radius ~0.12 world units. Pushing

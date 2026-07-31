@@ -3,6 +3,7 @@ import type { TierController } from '../perf/controller';
 import type { TensionHandle } from '../plates/tension/Tension';
 import type { DispersionHandle } from '../plates/dispersion/Dispersion';
 import type { TurbulenceHandle } from '../plates/turbulence/Turbulence';
+import type { WeaveHandle } from '../plates/weave/Weave';
 
 /**
  * Handles on the shared GPU primitives, for consumers outside the React tree.
@@ -70,4 +71,14 @@ export function setTurbulencePlate(handle: TurbulenceHandle | null): void {
 
 export function getTurbulencePlate(): TurbulenceHandle | null {
   return turbulencePlate;
+}
+
+let weavePlate: WeaveHandle | null = null;
+
+export function setWeavePlate(handle: WeaveHandle | null): void {
+  weavePlate = handle;
+}
+
+export function getWeavePlate(): WeaveHandle | null {
+  return weavePlate;
 }

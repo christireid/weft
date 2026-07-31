@@ -105,7 +105,7 @@ to average against, and the cloud reads as RGB confetti — it looked like fine 
 at a third scale and only failed when a crop was opened at 1:1. Ordered, adjacent particles
 carry adjacent wavelengths, so the fray separates into coloured strands.
 
-<img src="docs/media/still-plate-03-lattice.png" alt="Plate III's exit: the particle cloud resolved into a regular rectangular lattice of rows and columns, seen at an oblique angle" width="100%">
+<img src="docs/media/still-plate-03-lattice.png" alt="Plate III's exit: the particle cloud resolved into a woven rectangular sheet crossed by broad horizontal bands of light, seen at an oblique angle" width="100%">
 
 At the end of the plate the curl decays and a lattice attractor engages. Each particle has its
 own site, indexed by its position in the simulation texture, so the cloud fills the grid
@@ -113,6 +113,13 @@ exactly once and resolves into rows and columns — the warp and weft the next p
 from. Snapping to the nearest site instead piles particles onto wherever the cloud was already
 dense and leaves the rest of the grid empty; that version resolved to a scatter of bright dots
 and is kept in `docs/verification/captures/` as the counter-example.
+
+The broad horizontal bands across that image are **moiré**, and they were not designed. A
+512-row lattice sampled onto a 1800-pixel frame beats against the pixel grid, and the bloom
+pass turns the beat into visible light. It happens to read as the sheen across woven fabric,
+which is why it is still here — but it is an interference pattern that fell out of the
+resolutions, not a decision, and calling it one would be the kind of retroactive intent this
+document is trying to avoid.
 
 ---
 

@@ -1,9 +1,9 @@
 # STATE
 
-**Current loop:** L2 · complete (Plates I–III). L3 not started
+**Current loop:** L3 · task 1 (Plate IV) built but blocked, see B-001. Plates I–III shipped
 **Last updated:** 2026-07-31
 **`pnpm verify`:** green — 69 unit tests, 15 shader tests, 6 a11y tests, plus a program-link sweep and a plate-isolation measurement
-**BLOCKERS:** none open
+**BLOCKERS:** one open — B-001, Plate IV's refraction destroys its specimen
 
 ---
 
@@ -28,12 +28,26 @@ pnpm fit:cmf             # refit the colour-matching curves
 
 `D` toggles the debug HUD in the browser, `S` toggles Specimen Mode.
 
-**Next task: L3 task 1** — Plate IV · TEXTURA. A GPU verlet cloth on a 128×128 grid, pinned at
-two corners and releasing as the plate progresses, refracting a CC0 macro photograph that is
-legible only through the distortion. Plate III's exit already delivers the starting state: its
-lattice is indexed by particle, so the cloud resolves into a regular warp and weft rather than
-into a scatter (D-025), and `docs/verification/captures/p3-lattice3-at-0p498.png` is what that
-looks like.
+**Next task: finish Plate IV.** It is built and every part of it is verified except the last
+one. Read `BLOCKERS.md` B-001 first — it has the diagnosis and the specific next step (sample
+the specimen through a mip level chosen from the refraction offset, so the lookup is
+band-limited to the spread). The component is written, the specimen is committed with its
+licence chain, and only the mount in `Stage.tsx` is commented out.
+
+Three things were learned building it, all of them by measurement after reasoning had failed,
+and all of them recorded where they happened:
+
+1. A flat sheet under in-plane gravity is a **degenerate configuration** — it never leaves the
+   plane, every normal is ±z, and the refraction term is identically zero. Raising the
+   refraction strength 3.5× changed the frame by zero bytes.
+2. The first fix, a cylindrical bow, did nothing, because **a cylinder is developable**: it
+   flattens without changing any distance, and a solver made of distance constraints has no
+   reason to keep it. The rest pose is now a saddle, which by Gauss's Theorema Egregium cannot
+   flatten.
+3. Twelve Jacobi iterations on a 64-cell sheet do not hold a hanging corner. The failure does
+   not look like softness — the sheet **furls into a rope** about a pixel wide, which reads as
+   a rendering bug. Sixteen iterations plus long-range attachments (Kim et al., SCA 2012) fix
+   it.
 
 **Two things to carry into it**, both learned the expensive way in L2:
 

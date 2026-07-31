@@ -20,7 +20,12 @@ import { setTierController } from './registry';
 import { Composite } from './composite';
 import { Bloom } from './bloom';
 import { TIER_PROFILES } from '../perf/tier';
-import { getDispersionPlate, getTensionPlate, getTurbulencePlate } from './registry';
+import {
+  getDispersionPlate,
+  getTensionPlate,
+  getTurbulencePlate,
+  getWeavePlate,
+} from './registry';
 
 /**
  * The single frame loop (§5.2).
@@ -278,6 +283,25 @@ export function FrameLoop() {
         // the scene graph contributes nothing rather than being culled by a
         // conditional mount that would rebuild its buffers on every crossing.
         turbulence.setLocalTime(0, 0);
+      }
+    }
+
+    /*
+     * Plate IV's cloth. Stepped before the scene render for the same reason as
+     * Plate III: the mesh that consumes the solver's output is drawn inside
+     * `gl.render`, so stepping afterwards would draw the previous frame.
+     */
+    const weave = getWeavePlate();
+    if (weave) {
+      const slot = frame.router.slots[3];
+      if (slot?.active) {
+        weave.setLocalTime(slot.t, slot.weight);
+        weave.setPointer(pointerState.x, pointerState.y, specimen ? 0 : pointerState.pressure);
+        // The cloth integrates, so freezing means not stepping — the same call
+        // as Plate III and for the same reason.
+        if (!specimen || !frozen) weave.step(gl, frame.elapsed, state.camera);
+      } else {
+        weave.setLocalTime(0, 0);
       }
     }
 

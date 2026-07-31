@@ -47,9 +47,26 @@ Adapted, not copied. Where an implementation was read, the file and lines are re
 §10 permits exactly one photograph in the entire site: the specimen refracted through the
 cloth in Plate IV.
 
-_Not yet selected. It will be a CC0 macro photograph (botanical or mineral) and its source,
-photographer and licence will be recorded here before it is committed. Until then there is
-no photograph in this repository._
+**`public/specimen/gravel.png`** — a macro photograph of gravel. 512×512, greyscale.
+
+| | |
+| --- | --- |
+| Original | "Gravel 04", ambientCG (formerly CC0Textures) |
+| Licence | **CC0 1.0 Universal** — no rights reserved |
+| Obtained from | `scikit-image` v0.22.0, `skimage/data/gravel.png` |
+| Documented at | `skimage/data/_fetchers.py`, `gravel()` |
+
+Fetched through scikit-image rather than from ambientCG directly because this build sandbox
+cannot reach `cdn.struffelproductions.com` — or `upload.wikimedia.org`, or any other image
+host. `raw.githubusercontent.com` is the only route out, so the image had to come from a
+repository that both hosts the file and documents its provenance in the same tree.
+scikit-image does: its `gravel()` docstring names CC0Textures as the source, states the CC0
+licence, and records the transformation it applied (rescaled to 1024², top-left 512² cropped,
+converted to greyscale uint8). That chain is recorded here in full because a licence claim
+with no traceable origin is worth nothing.
+
+The image is used as the specimen refracted through Plate IV's cloth. It is the only
+photograph in the site, per §10.
 
 ---
 

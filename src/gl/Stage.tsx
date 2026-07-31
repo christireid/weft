@@ -91,6 +91,15 @@ export function Stage() {
         <Tension />
         <Dispersion />
         <Turbulence />
+        {/*
+         * Plate IV is built but NOT mounted. See STATE.md and BLOCKERS.md: the
+         * cloth simulates correctly and the specimen refracts, but the specimen
+         * is too high-frequency for the refraction spread and the plate reads as
+         * oil-slick iridescence rather than as a photograph seen through cloth.
+         * §0.4 forbids shipping placeholder content and §10 forbids shipping
+         * something that looks like a bug; leaving it out of the tree is the
+         * honest state until it is right.
+         */}
       </Canvas>
     </div>
   );
