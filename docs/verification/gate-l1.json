@@ -1,0 +1,11 @@
+{
+  "capturedAt": "2026-07-31T03:41:06.857Z",
+  "heap": {
+    "beforeBytes": 6457272,
+    "afterBytes": 6413031,
+    "growthBytes": -44241,
+    "bytesPerFrame": -73.73,
+    "frames": 600,
+    "limitBytes": 2097152
+  }
+}

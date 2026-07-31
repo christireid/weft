@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-07-31T03:23:18.823Z",
+  "gradient": {
+    "from": 0,
+    "to": 0.02,
+    "samples": 1024,
+    "note": "linear scene values, darkest 2% of range"
+  },
+  "ditherStrength": 0.035,
+  "blueWeight": 0.35,
+  "undithered": {
+    "maxRunLengthPx": 61,
+    "distinctLevels": 27
+  },
+  "dithered": {
+    "maxRunLengthPx": 3,
+    "distinctLevels": 35
+  },
+  "bandingReductionFactor": 20.3
+}

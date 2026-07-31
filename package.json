@@ -25,7 +25,8 @@
     "fonts:sync": "node tools/sync-fonts.mjs",
     "lh": "node tools/lighthouse.mjs",
     "fit:cmf": "node tools/fit-cmf.mjs",
-    "shaders": "playwright test tools/shaders.spec.ts"
+    "shaders": "playwright test tools/shaders.spec.ts",
+    "gate:l1": "playwright test tools/gate-l1.spec.ts"
   },
   "dependencies": {
     "@react-three/drei": "10.7.7",

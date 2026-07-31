@@ -52,6 +52,23 @@ export const frame: FrameState = {
   router: createRouterState(),
 };
 
+/*
+ * Instrumentation handle.
+ *
+ * §3.3 requires the measurement strings on screen to be read from live
+ * application state — "a number on screen that does not correspond to
+ * something the renderer actually knows is a fabrication". This is the same
+ * state, exposed so the claim can be checked from outside: open the console and
+ * read the numbers the page is displaying.
+ *
+ * It is a read handle on the existing singleton, not a copy, so it costs
+ * nothing and cannot drift from what the renderer is using. The L1 exit gate
+ * reads it to verify no plate is dropped across a real scroll pass.
+ */
+if (typeof window !== 'undefined') {
+  (window as unknown as { __weftFrame: FrameState }).__weftFrame = frame;
+}
+
 /** Test seam: restore the singleton to boot state without reallocating it. */
 export function resetFrame(): void {
   frame.progress = 0;

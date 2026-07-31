@@ -1,6 +1,6 @@
 # STATE
 
-**Current loop:** L1 · tasks 1–5 done, 6 in progress
+**Current loop:** L1 complete → entering L2
 **Last updated:** 2026-07-31
 **`pnpm verify`:** green
 **BLOCKERS:** none open
@@ -21,8 +21,10 @@ pnpm a11y                # axe-core → docs/verification/axe.json
 pnpm preview & pnpm lh   # Lighthouse a11y → docs/verification/lighthouse.json
 ```
 
-**Next task: L1 task 6** — the post-processing chain with the custom dither pass, verified
-against a dark gradient for zero banding.
+**Next task: L2 task 1** — Plate I, TENSIO: the screen-facing ribbon, the standing wave, the
+pointer grab with damped travelling waves, and the exit transformation into Plate II's beam.
+
+`pnpm gate:l1` re-runs the L1 exit gate. It takes ~5 minutes here — see D-019.
 
 Shader chunk tests: `pnpm shaders`. Refit the colour-matching curves: `pnpm fit:cmf`.
 

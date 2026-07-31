@@ -1,12 +1,11 @@
 import { Canvas } from '@react-three/fiber';
 import {
-  ACESFilmicToneMapping,
   Color,
   ColorManagement,
-  SRGBColorSpace,
+  LinearSRGBColorSpace,
+  NoToneMapping,
   type WebGLRenderer,
 } from 'three';
-import { VOID_HEX } from '../config/identity';
 import { FrameLoop } from './FrameLoop';
 import { hasWebGL2 } from './capability';
 import { appStore } from '../state/store';
@@ -16,23 +15,40 @@ import { appStore } from '../state/store';
  *
  *   working space  linear-sRGB   (ColorManagement.enabled — all Color and
  *                                 material inputs are converted on assignment)
- *   tone map       ACES Filmic   (so the spectral accumulation in Plate II has
- *                                 somewhere to put values above 1.0 instead of
- *                                 clipping to white)
- *   output         sRGB
+ *   scene pass     linear, half-float — nothing is tone mapped or encoded here
+ *   composite      ACES → sRGB → dither → quantise (src/gl/composite.ts)
  *
- * The clear colour is the one thing tone mapping does not touch: three writes
- * it straight to the framebuffer, converting linear→sRGB but not tone mapping,
- * so #050507 in this file is #050507 in the captured PNG. That exactness is
- * asserted in tools/capture.spec.ts rather than trusted.
+ * The renderer's own tone mapping and output encoding are switched off so the
+ * scene can accumulate spectral energy above 1.0 (§2 Plate III) and reach the
+ * tone mapper intact. Doing it twice crushes exactly the darks §3.4's dither
+ * exists to protect.
+ *
+ * The clear colour survives that intact: three converts it linear→sRGB on the
+ * way to the framebuffer and the composite pass round-trips it, so #050507 in
+ * this file is #050507 in the captured PNG. Asserted in tools/capture.spec.ts
+ * rather than trusted.
  */
 ColorManagement.enabled = true;
 
-const clearColor = new Color(VOID_HEX);
+/*
+ * Black, not --void. The scene buffer holds *light*; the void is applied by the
+ * composite pass after tone mapping, because ACES compresses the bottom of the
+ * range and would turn #050507 into rgb(1.5, 1.5, 1.8). See composite.frag.glsl.
+ */
+const clearColor = new Color(0x000000);
 
 function configure(gl: WebGLRenderer): void {
-  gl.outputColorSpace = SRGBColorSpace;
-  gl.toneMapping = ACESFilmicToneMapping;
+  /*
+   * Both tone mapping and the sRGB encode are OFF here, and that is deliberate.
+   *
+   * The scene renders into a half-float HDR buffer and the composite pass
+   * (src/gl/composite.ts) owns tone mapping, the encode and the dither, in that
+   * order. Leaving them on would encode twice — once into the HDR buffer and
+   * once on the way out — which crushes the darks the dither pass exists to
+   * protect, and would tone map before the spectral accumulation had finished.
+   */
+  gl.outputColorSpace = LinearSRGBColorSpace;
+  gl.toneMapping = NoToneMapping;
   gl.toneMappingExposure = 1;
   gl.setClearColor(clearColor, 1);
 }

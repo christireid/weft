@@ -17,6 +17,7 @@ import { appStore } from '../state/store';
 import { disposeTouchDebug, drawTouchDebug } from './touchDebugView';
 import { createTierController, stepTierController } from '../perf/controller';
 import { setTierController } from './registry';
+import { Composite } from './composite';
 
 /**
  * The single frame loop (§5.2).
@@ -65,6 +66,18 @@ export function FrameLoop() {
 
   const touch = useMemo(() => new TouchField(gl), [gl]);
   const tier = useMemo(() => createTierController(), []);
+  const composite = useMemo(
+    () => new Composite(gl, size.width * gl.getPixelRatio(), size.height * gl.getPixelRatio()),
+    // Constructed once; resized by the effect below rather than rebuilt, so a
+    // window drag does not reallocate a full-viewport HDR target per frame.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gl],
+  );
+
+  useEffect(() => {
+    const ratio = gl.getPixelRatio();
+    composite.setSize(size.width * ratio, size.height * ratio);
+  }, [composite, gl, size.width, size.height]);
 
   useEffect(() => {
     initScroll();
@@ -77,10 +90,11 @@ export function FrameLoop() {
       setTouchField(null);
       setTierController(null);
       touch.dispose();
+      composite.dispose();
       disposeTouchDebug();
       destroyScroll();
     };
-  }, [touch, tier, gl]);
+  }, [touch, tier, gl, composite]);
 
   useFrame((state, delta) => {
     const elapsed = state.clock.elapsedTime;
@@ -107,12 +121,23 @@ export function FrameLoop() {
     // the pointer by 16 ms, which §1.2 counts as a failure of response.
     touch.step(gl, frame.delta, size.width / Math.max(1, size.height));
 
-    // The scene render is issued here rather than by r3f, because this callback
-    // has a non-zero renderPriority. That is the point: the post-processing
-    // chain (L1 task 6) composites between this render and the frame being
-    // presented, and anything drawn *after* an automatic render would be
-    // cleared by the next one.
+    /*
+     * Scene → HDR buffer → composite → canvas.
+     *
+     * The scene is rendered into a half-float target rather than straight to
+     * the canvas so spectral accumulation above 1.0 survives to the tone
+     * mapper. The composite pass does tone mapping, the sRGB encode and the
+     * dither, in that order (§3.4).
+     *
+     * This is issued here rather than by r3f because the callback has a
+     * non-zero renderPriority — anything drawn after an automatic render would
+     * be cleared by the next one.
+     */
+    gl.setRenderTarget(composite.sceneTarget);
+    gl.clear();
     gl.render(state.scene, state.camera);
+    gl.setRenderTarget(null);
+    composite.present(gl);
 
     if (appStore.getState().debug) {
       drawTouchDebug(gl, touch.texture);

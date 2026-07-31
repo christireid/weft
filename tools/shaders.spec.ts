@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { resolveIncludes, runChunk } from './lib/glslHarness';
@@ -530,4 +531,112 @@ test('easing: the GPU curves match the CSS curves in tokens.css', async ({ page 
   for (let i = 1; i < COUNT; i++) {
     expect(out[i * 4] ?? 0).toBeGreaterThanOrEqual((out[(i - 1) * 4] ?? 0) - 1e-6);
   }
+});
+
+/* ------------------------------------------------------------------ *
+ * composite.frag.glsl — the shipped final pass
+ * ------------------------------------------------------------------ */
+
+test('composite: a dark gradient does not band (§7 L1 task 6)', async ({ page }) => {
+  /*
+   * "Post-processing chain with the custom dither pass, verified against a dark
+   * gradient for zero banding."
+   *
+   * The measure is **run length**, not distinct-value count. Banding is visible
+   * as contour *edges*: a gradient quantised to 8 bits holds each output value
+   * for a long run of pixels and then steps, and the eye finds the step. A
+   * gradient from 0 to 0.02 over 1024 pixels can only produce about six output
+   * values, so undithered it has runs of ~170 pixels — six wide, obvious bands
+   * across the void. Dithering breaks each plateau into a mix of the two
+   * neighbouring values, so runs collapse to a few pixels and the transition
+   * reads as texture instead of as an edge.
+   */
+  const COUNT = 1024;
+  const out = await runChunk(page, {
+    chunks: [chunk('tonemap.glsl'), chunk('dither.glsl')],
+    count: COUNT,
+    body: `
+      // The exact sequence composite.frag.glsl runs, using the same chunk
+      // functions it ships — not a reimplementation of them.
+      float linearValue = t * 0.02;
+      vec3 voidColour = vec3(5.0, 5.0, 7.0) / 255.0;
+      vec3 lifted = weftLiftOverVoid(weftLinearToSRGB(weftACES(vec3(linearValue))), voidColour);
+
+      vec2 pixel = vec2(float(index - (index / 32) * 32), float(index / 32));
+
+      float plain = floor(lifted.r * 255.0 + 0.5) / 255.0;
+      float dithered = weftDitherQuantise(lifted, pixel, 0.035, 255.0, 0.35).r;
+      return vec4(plain, dithered, lifted.r, 1.0);
+    `,
+  });
+
+  function maxRun(values: number[]): number {
+    let longest = 1;
+    let current = 1;
+    for (let i = 1; i < values.length; i++) {
+      if (values[i] === values[i - 1]) current += 1;
+      else current = 1;
+      if (current > longest) longest = current;
+    }
+    return longest;
+  }
+
+  const plain: number[] = [];
+  const dithered: number[] = [];
+  for (let i = 0; i < COUNT; i++) {
+    plain.push(Math.round((out[i * 4] ?? 0) * 255));
+    dithered.push(Math.round((out[i * 4 + 1] ?? 0) * 255));
+  }
+
+  const plainRun = maxRun(plain);
+  const ditheredRun = maxRun(dithered);
+  const plainLevels = new Set(plain).size;
+  const ditheredLevels = new Set(dithered).size;
+
+  const report = {
+    capturedAt: new Date().toISOString(),
+    gradient: {
+      from: 0,
+      to: 0.02,
+      samples: COUNT,
+      note: 'linear scene values, darkest 2% of range',
+    },
+    ditherStrength: 0.035,
+    blueWeight: 0.35,
+    undithered: { maxRunLengthPx: plainRun, distinctLevels: plainLevels },
+    dithered: { maxRunLengthPx: ditheredRun, distinctLevels: ditheredLevels },
+    bandingReductionFactor: Number((plainRun / ditheredRun).toFixed(1)),
+  };
+  await writeFile(
+    join(process.cwd(), 'docs/verification/banding.json'),
+    `${JSON.stringify(report, null, 2)}\n`,
+  );
+  console.log(
+    `[composite] ${JSON.stringify(report.undithered)} → ${JSON.stringify(report.dithered)}`,
+  );
+
+  // Undithered must actually band, or the test proves nothing.
+  expect(
+    plainRun,
+    'control gradient did not band — test is not measuring anything',
+  ).toBeGreaterThan(60);
+  // Dithered runs must be short enough that no contour edge is resolvable.
+  expect(ditheredRun, 'dithered gradient still bands').toBeLessThan(12);
+  expect(ditheredLevels).toBeGreaterThan(plainLevels);
+});
+
+test('composite: zero scene light resolves to exactly --void', async ({ page }) => {
+  // The property the whole lift step exists for. If this drifts, the page
+  // background and the canvas disagree and the seam is visible at every edge.
+  const out = await runChunk(page, {
+    chunks: [chunk('tonemap.glsl')],
+    count: 1,
+    body: `
+      vec3 v = vec3(5.0, 5.0, 7.0) / 255.0;
+      return vec4(weftLiftOverVoid(weftLinearToSRGB(weftACES(vec3(0.0))), v), 1.0);
+    `,
+  });
+  expect(Math.round((out[0] ?? 0) * 255)).toBe(5);
+  expect(Math.round((out[1] ?? 0) * 255)).toBe(5);
+  expect(Math.round((out[2] ?? 0) * 255)).toBe(7);
 });

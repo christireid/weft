@@ -289,6 +289,76 @@ worth recording because both would have been easy to "fix" by loosening a thresh
   Fixed by having the shader report the points it actually used and comparing against those.
 - The curl test used the dimensionally-wrong divergence measure described in D-013.
 
+## D-016 · L1 · The void is applied after tone mapping, not before
+
+Found by the capture assertion, not by reasoning — which is the whole reason that assertion
+exists.
+
+The composite pass was written to tone map, encode and dither. With the scene buffer cleared
+to `--void`, the captured background came out as **rgb(1.5, 1.5, 1.8)** instead of
+`#050507`. ACES compresses the bottom of its range by roughly 4×, which is correct behaviour
+for _light_ and wrong for a page colour.
+
+`#050507` is an authored value from §3.1. It has to appear on screen as itself, and it also
+has to match the CSS `--void` behind the canvas or the seam is visible at every edge of the
+composition.
+
+Resolution: the scene buffer clears to **black**, everything the renderer produces is
+treated as light, and the void is the floor that light sits on —
+`weftLiftOverVoid(encoded, void)` in `tonemap.glsl`, applied after the sRGB encode and
+before dither and quantisation. Equivalent to a screen blend and exact at both ends: zero
+light resolves to `#050507` to the last code value, full light to white. Asserted on the GPU
+and re-asserted end-to-end by the capture spec, which now reads `rgb(4.9, 4.9, 6.9)` — the
+0.1 shortfall is the dither, working.
+
+## D-017 · L1 · Dither strength 0.035, verified by run length rather than by eye
+
+§3.4 gives the window 0.02–0.06 and warns "too much and it reads as a filter". 0.035, with
+the stochastic term mixed at 0.35 over the ordered matrix.
+
+The verification that matters is not "how many distinct levels" but **run length**. Banding
+is visible as contour _edges_: a gradient quantised to 8 bits holds one output value for a
+long run of pixels and then steps, and the eye finds the step. Measured on a 0→0.02 linear
+ramp across 1024 samples — the darkest 2% of the range, where the void's gradients live:
+
+|            | max run length | distinct levels |
+| ---------- | -------------- | --------------- |
+| undithered | **61 px**      | 27              |
+| dithered   | **3 px**       | 35              |
+
+A 20.3× reduction. Three device pixels at DPR 2 is 1.5 CSS pixels — below the width at
+which a contour edge is resolvable. Recorded in `docs/verification/banding.json`.
+
+The control matters as much as the result: the test asserts the _undithered_ ramp does band
+(run > 60 px), because a test where the control passes is measuring nothing.
+
+## D-018 · L1 · The tone map and encode are library chunks, not pass-private
+
+Refactored mid-task, prompted by a test failure that was really a design signal: the shader
+harness could not include `composite.frag.glsl` because a pass file carries its own
+`varying` declarations and `main()`, which collide under GLSL ES 3.00.
+
+The fix could have been a shim that strips them. Instead `weftACES`, `weftLinearToSRGB` and
+`weftLiftOverVoid` moved into `src/shaders/lib/tonemap.glsl`, which is better regardless:
+the shard pass in Plate VI needs the same encode, and it means the tests exercise **the
+exact functions the pass ships** rather than a reimplementation of them in the test body.
+A test that reimplements what it is testing is a test of the reimplementation.
+
+## D-019 · L1 · Software-rasteriser frame cost is bounded separately from the GPU contract
+
+Adding the composite pass took a frame under SwiftShader from ~21 ms to ~240 ms. That is
+explainable and specific: the sRGB encode is three `pow()` per pixel over 5.2M pixels, about
+15M transcendentals per frame — microseconds on a GPU, a quarter of a second in software.
+
+Rather than weaken the renderer-cost assertion until it passed everywhere, the harness now
+carries two ceilings and picks by detected renderer: the real contract on hardware, and a
+loose regression tripwire on a software rasteriser, with the renderer string in the artifact
+so the two can never be confused. Frame counts and test timeouts were raised to match; the
+L1 heap gate walks 600 frames, which is ~2.5 minutes of wall clock here.
+
+This is the same principle as D-006 and it keeps applying: measure, state which machine the
+number came from, and never let a container's limitation become the shipped claim.
+
 ---
 
 ## Delegated copy (§4.3)

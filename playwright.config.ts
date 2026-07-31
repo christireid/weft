@@ -81,6 +81,9 @@ export default defineConfig({
             '--disable-lcd-text',
             '--force-color-profile=srgb',
             '--hide-scrollbars',
+            // performance.memory reports rounded, cached values without this;
+            // the L1 heap gate needs real numbers.
+            '--enable-precise-memory-info',
           ],
         },
       },
