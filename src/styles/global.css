@@ -202,6 +202,7 @@ canvas {
   padding: 0.9rem 1rem;
   background: color-mix(in srgb, var(--void) 82%, transparent);
   border: var(--rule) solid var(--ink-12);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   pointer-events: none;
 }
@@ -243,6 +244,46 @@ canvas {
 :where(a, button, [tabindex]):focus-visible {
   outline: var(--focus-ring) solid var(--ink-100);
   outline-offset: 4px;
+}
+
+/*
+ * A plate is a 700vh-tall runway; ringing the whole section would draw a box
+ * round the viewport and look like an error state. The ring is drawn on the
+ * plate's title instead, which is the thing the visitor has actually arrived at.
+ */
+.plate:focus-visible {
+  outline: none;
+}
+
+.plate:focus-visible .plate__title {
+  outline: var(--focus-ring) solid var(--ink-100);
+  outline-offset: 1rem;
+}
+
+/*
+ * Skip link. Off-screen until focused rather than display:none, because a
+ * display:none link is not reachable by the keyboard it exists for.
+ */
+.skip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  padding: 0.85rem 1.25rem;
+  transform: translateY(-120%);
+  background: var(--void);
+  border: var(--rule) solid var(--ink-100);
+  color: var(--ink-100);
+  font-family: var(--face-mono);
+  font-size: var(--step-annotation);
+  letter-spacing: var(--track-annotation);
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: transform var(--dur-micro) var(--ease-enter);
+}
+
+.skip:focus-visible {
+  transform: translateY(0);
 }
 
 /* --- reduced motion ------------------------------------------------------ */

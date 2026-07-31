@@ -48,13 +48,13 @@ and it answers.
 
 > `1-D wave equation, u_tt = c²u_xx − 2γu_t, solved on a 512×1 ping-pong target at Courant 0.94`
 
-<img src="docs/media/still-plate-01.png" alt="Detail of the filament: a white core with cyan and red spectral wings" width="100%">
+<img src="docs/media/still-plate-01.png" alt="Plate I at rest: the masthead in Bodoni Moda above a shallow catenary filament spanning the full width" width="100%">
 
 The wave is **simulated, not tweened**, and that distinction is the plate. §5.5 of the spec
 forbids easing anything with mass, and everything the brief asks for falls out of the
 equation rather than being authored: a disturbance splits into two counter-propagating pulses
 because that is what the wave equation does with an initial displacement; both travel at the
-same speed however hard you pull; they reflect and *invert* at the pinned ends; amplitude
+same speed however hard you pull; they reflect and _invert_ at the pinned ends; amplitude
 decays exponentially.
 
 The Courant number is 0.94 rather than 1.0 for a specific reason. The scheme is exact at
@@ -72,7 +72,7 @@ by refraction. There is no brand accent.**
 
 > `16 wavelengths, δ(λ) = (n(λ) − 1)·A, Cauchy n(λ) = A + B/λ², accumulated in CIE XYZ`
 
-<img src="docs/media/still-plate-02.png" alt="A white beam entering the wedge and separating into a continuous spectrum" width="100%">
+<img src="docs/media/still-plate-02.png" alt="Plate II: a white beam crossing the frame into a wireframe glass wedge, leaving as a continuous spectrum" width="100%">
 
 The wedge is draggable — rotating it sweeps the spectrum across the viewport. There is no
 slider, because there is no chrome on this page at all.
@@ -92,18 +92,18 @@ on screen, so the fan is continuous.
 
 The colour-matching functions are **fitted in this repository**, not transcribed. The standard
 analytic approximation is Wyman, Sloan & Shirley (JCGT 2013); that paper was unreachable from
-the build sandbox, and inventing coefficients was not an option. So the *functional form* is
+the build sandbox, and inventing coefficients was not an option. So the _functional form_ is
 taken from the literature and cited, and `tools/fit-cmf.mjs` fits the coefficients to
 tabulated CIE 1931 2° data checked into the repo, seeded from the data's own peaks and
 half-widths, using a hand-rolled Nelder-Mead.
 
 Measured against the table, 361 samples at 1 nm, **on the GPU**:
 
-| curve | RMSE | max abs error |
-| --- | --- | --- |
-| x̄ | 7.71 × 10⁻³ | 0.0202 |
-| ȳ | 3.03 × 10⁻³ | 0.0073 |
-| z̄ | 4.53 × 10⁻³ | 0.0221 |
+| curve | RMSE        | max abs error |
+| ----- | ----------- | ------------- |
+| x̄     | 7.71 × 10⁻³ | 0.0202        |
+| ȳ     | 3.03 × 10⁻³ | 0.0073        |
+| z̄     | 4.53 × 10⁻³ | 0.0221        |
 
 Two checks that this is the real curve and not merely a plausible one: **ȳ peaks at 0.9977 at
 554 nm**, against the CIE definition of exactly 1.0 at 555 nm — and a flat spectrum resolves
@@ -117,7 +117,7 @@ which is the check that the derivation is right, and maps D65 to (1.00000, 1.000
 **The wedge glass is fictional and says so.** Its endpoint indices are 1.78 at 380 nm and 1.46
 at 740 nm — roughly ten times the dispersion of a real flint glass. WEFT documents a material
 that does not exist, so its wedge is not obliged to be N-BK7. What stays real is Cauchy's
-*form*: the 1/λ² law, which compresses the red end of the fan and is what makes the separation
+_form_: the 1/λ² law, which compresses the red end of the fan and is what makes the separation
 read as dispersion rather than as a gradient.
 
 ---
@@ -165,26 +165,26 @@ Full reasoning in [ADR-0001](docs/adr/0001-one-canvas-one-loop.md) and
 
 The background is `#050507` and the plates are full of gradients in the darkest two percent of
 the range. That is exactly where 8-bit output bands into visible contour rings. An 8×8 Bayer
-matrix plus a stochastic term, applied *after* the sRGB encode and immediately before
+matrix plus a stochastic term, applied _after_ the sRGB encode and immediately before
 quantisation, converts those contours into structured texture — which happens to read as the
 halftone of a printed plate.
 
 Banding is visible as contour **edges**, so the measure is run length, not distinct-value
 count. On a 0 → 0.02 linear ramp across 1024 samples:
 
-| | max run length | distinct levels |
-| --- | --- | --- |
-| undithered | **61 px** | 27 |
-| dithered | **3 px** | 35 |
+|            | max run length | distinct levels |
+| ---------- | -------------- | --------------- |
+| undithered | **61 px**      | 27              |
+| dithered   | **3 px**       | 35              |
 
 A **20.3× reduction**. Three device pixels at DPR 2 is 1.5 CSS pixels — below the width at
-which an edge is resolvable. The test also asserts that the *undithered* control bands, because
+which an edge is resolvable. The test also asserts that the _undithered_ control bands, because
 a test whose control passes is measuring nothing.
 
 One bug worth recording, because it was caught by looking rather than by reasoning: with the
 scene buffer cleared to `--void`, the captured background came out `rgb(1.5, 1.5, 1.8)` instead
 of `#050507`. ACES compresses the bottom of its range by roughly 4×, which is correct behaviour
-for *light* and wrong for a page colour. The scene now clears to black, everything the renderer
+for _light_ and wrong for a page colour. The scene now clears to black, everything the renderer
 produces is treated as light, and the void is the floor light sits on.
 
 ---
@@ -193,17 +193,17 @@ produces is treated as light, and the void is the floor light sits on.
 
 Every claim above has an artifact behind it in [`docs/verification/`](docs/verification).
 
-| What | Result |
-| --- | --- |
-| Canvas clears to `--void` | delta **0** at DPR 2, proven against a magenta-backed control so the page background cannot pass the test for the canvas |
-| Lighthouse accessibility | **100** · best-practices 100 · SEO 100 · zero failed audits |
-| axe-core | **0 violations** |
-| Plate router, full 0→1 pass | 201 samples, **0 dropped**, never more than 2 live, 6/6 plates visited |
-| Leaked GL objects during a scroll pass | **0** textures, framebuffers, renderbuffers, buffers, programs |
-| Heap growth, 600 frames of real scrolling | **−44 KB** (−73.7 B/frame) — the heap *shrank* |
-| Curl field, \|∇·v\| / ‖∇v‖_F | **6.98 × 10⁻³** over 1024 scattered points |
-| Bayer 8×8 | visits all **64/64** levels exactly once |
-| GPU easing vs. CSS `cubic-bezier` | max delta **1.4 × 10⁻⁷** |
+| What                                      | Result                                                                                                                   |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Canvas clears to `--void`                 | delta **0** at DPR 2, proven against a magenta-backed control so the page background cannot pass the test for the canvas |
+| Lighthouse accessibility                  | **100** · best-practices 100 · SEO 100 · zero failed audits                                                              |
+| axe-core                                  | **0 violations**                                                                                                         |
+| Plate router, full 0→1 pass               | 201 samples, **0 dropped**, never more than 2 live, 6/6 plates visited                                                   |
+| Leaked GL objects during a scroll pass    | **0** textures, framebuffers, renderbuffers, buffers, programs                                                           |
+| Heap growth, 600 frames of real scrolling | **−44 KB** (−73.7 B/frame) — the heap _shrank_                                                                           |
+| Curl field, \|∇·v\| / ‖∇v‖_F              | **6.98 × 10⁻³** over 1024 scattered points                                                                               |
+| Bayer 8×8                                 | visits all **64/64** levels exactly once                                                                                 |
+| GPU easing vs. CSS `cubic-bezier`         | max delta **1.4 × 10⁻⁷**                                                                                                 |
 
 The shader chunk tests are the ones worth opening. Each chunk is checked against something
 **independent of itself** — tabulated CIE data, an independent JS bezier solver, an analytic
@@ -216,13 +216,14 @@ means asserting against a 0.0039 quantisation floor.
 
 ## Performance
 
-| Metric | Value |
-| --- | --- |
-| Bundle, gzipped JS | **364 KB** (target < 400 KB) |
-| Self-hosted fonts, latin subset | **96.5 KB** — three variable faces |
-| Shader source | **609** substantive lines across 15 `.glsl` files |
-| Tier-1 p95 at DPR 2 | `[pending — no GPU in the build environment]` |
-| Mobile tier-3 sustained | `[pending]` |
+| Metric                                         | Value                                             |
+| ---------------------------------------------- | ------------------------------------------------- |
+| Bundle, gzipped JS on the critical path        | **66.9 KB** (target < 400 KB)                     |
+| Renderer chunk, loaded only when WebGL2 exists | 298 KB                                            |
+| Self-hosted fonts, latin subset                | **96.5 KB** — three variable faces                |
+| Shader source                                  | **609** substantive lines across 15 `.glsl` files |
+| Tier-1 p95 at DPR 2                            | `[pending — no GPU in the build environment]`     |
+| Mobile tier-3 sustained                        | `[pending]`                                       |
 
 **The frame-time figures are bracketed on purpose.** This build ran in a container with no GPU;
 every frame was rasterised by SwiftShader, where the composite pass's sRGB encode alone is three
@@ -230,7 +231,7 @@ every frame was rasterised by SwiftShader, where the composite pass's sRGB encod
 hardware and a quarter of a second in software. Presenting those numbers as the site's
 performance would be a fabrication.
 
-What *can* be measured here is measured. The perf harness samples four series every run — an
+What _can_ be measured here is measured. The perf harness samples four series every run — an
 idle page with no canvas, a bare `gl.clear()` loop at the same size and DPR, the site with its
 DOM layer hidden, and the site as shipped — and reports the differences, with the renderer
 string attached to the artifact so a software number can never be mistaken for a hardware one.
@@ -245,20 +246,28 @@ switches**.
 
 ## Accessibility
 
-The DOM is the source of truth. All text is real, selectable and crawlable, with one `h1` and
-an `h2` per plate; the canvas is `aria-hidden`. A screen-reader user gets the complete catalogue
-without a single WebGL frame being drawn — and that holds on a browser without WebGL2, because
-the capability is probed before the canvas mounts rather than after.
+The DOM is the source of truth, and it is **prerendered at build time** — the shipped
+`index.html` contains the full catalogue as real markup, so a crawler, a reader-mode
+extractor, or anyone whose script fails on a bad connection gets the complete document. React
+hydrates over it rather than replacing it.
 
-`prefers-reduced-motion` is honoured today at the DOM layer, and Specimen Mode — the designed
-reduced-motion state, where simulations freeze at their most legible frame and the full
-annotation layer turns on — is scheduled for L4. `S` and `D` toggle Specimen Mode and the debug
-HUD respectively.
+One `h1`, an `h2` per plate, `aria-hidden` on the canvas. **Tab reaches every plate**, arrows
+and PageUp/PageDown nudge scroll through the smoothed scroller, Home/End jump the document,
+Esc releases focus, and a skip link precedes everything.
+
+`prefers-reduced-motion` **stops the simulations**, verified by asserting two full-page
+screenshots three seconds apart are byte-identical. The designed Specimen Mode — frozen at each
+plate's most legible frame with the annotation layer on — is L4; what ships now honours the
+preference rather than waiting for the prettier version. `S` and `D` toggle Specimen Mode and
+the debug HUD.
+
+Lighthouse: **accessibility 100 · best-practices 100 · SEO 100**, zero failed audits.
+axe-core: zero violations.
 
 **One place this build deviates from its own specification, deliberately.** The spec assigns
 `--ink-35` to annotation text. Composited over the void that is **2.95:1**, which fails WCAG AA
-at any size. The five token *values* ship exactly as specified and are asserted verbatim; what
-changed is the *assignment* — annotation text is set in `--ink-60` (**6.88:1**), and `--ink-35`
+at any size. The five token _values_ ship exactly as specified and are asserted verbatim; what
+changed is the _assignment_ — annotation text is set in `--ink-60` (**6.88:1**), and `--ink-35`
 is reserved for leader rules that carry no information their adjacent text does not. A test
 fails the build if either of the two lowest inks is ever used as a `color:`.
 
@@ -289,6 +298,10 @@ pnpm media && pnpm media:gifs      # the media in this README
 
 Vite 6 · React 19 · TypeScript 6 strict · three · @react-three/fiber · lenis · gsap · zustand ·
 Vitest · Playwright
+
+A [red-team pass](docs/verification/red-team.md) found and fixed twelve real defects — four of
+which were fixes that looked correct in the diff and did nothing at runtime, caught only
+because the tests measure outcomes rather than assert that code exists.
 
 Decisions that were delegated rather than specified are recorded with their reasoning in
 [`DECISIONS.md`](DECISIONS.md) — 20 entries, including the three places the specification

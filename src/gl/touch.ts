@@ -1,6 +1,5 @@
 import {
   ClampToEdgeWrapping,
-  FloatType,
   HalfFloatType,
   LinearFilter,
   NoColorSpace,
@@ -180,18 +179,5 @@ export class TouchField {
     this.targets[0].dispose();
     this.targets[1].dispose();
     this.material.dispose();
-  }
-
-  /** Diagnostics for the L1 debug view and the leak check in the exit gate. */
-  get debugInfo(): { size: number; type: string } {
-    return {
-      size: SIZE,
-      type:
-        this.type === HalfFloatType
-          ? 'HalfFloat'
-          : this.type === FloatType
-            ? 'Float'
-            : 'UnsignedByte',
-    };
   }
 }

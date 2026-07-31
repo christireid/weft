@@ -68,13 +68,3 @@ export const frame: FrameState = {
 if (typeof window !== 'undefined') {
   (window as unknown as { __weftFrame: FrameState }).__weftFrame = frame;
 }
-
-/** Test seam: restore the singleton to boot state without reallocating it. */
-export function resetFrame(): void {
-  frame.progress = 0;
-  frame.velocity = 0;
-  frame.direction = 0;
-  frame.elapsed = 0;
-  frame.delta = 0;
-  frame.count = 0;
-}

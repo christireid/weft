@@ -43,9 +43,12 @@ async function captureSequence(
   );
 
   for (let i = 0; i < frames; i++) {
-    await page.evaluate((y) => {
-      window.scrollTo(0, y);
-    }, offsetAt(i) * scrollable);
+    await page.evaluate(
+      (y) => {
+        window.scrollTo(0, y);
+      },
+      offsetAt(i) * scrollable,
+    );
     if (perFrame) await perFrame(page, i);
     await page.waitForTimeout(SETTLE);
     await page.screenshot({ path: join(dir, `${String(i).padStart(4, '0')}.png`) });
@@ -73,7 +76,7 @@ test.beforeEach(async ({ page }) => {
  * the honest thing to lead the README with.
  */
 test('hero: Plate I → II', async ({ page }) => {
-  await captureSequence(page, 'hero', 44, (i) => 0.06 + (i / 43) * 0.20);
+  await captureSequence(page, 'hero', 44, (i) => 0.06 + (i / 43) * 0.2);
 });
 
 test('plate I: the thread under load', async ({ page }) => {

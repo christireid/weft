@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
-import {
-  AdditiveBlending,
-  type Mesh,
-  ShaderMaterial,
-  Vector2,
-  type Texture,
-  type WebGLRenderer,
-} from 'three';
+import { AdditiveBlending, type Mesh, ShaderMaterial, Vector2, type WebGLRenderer } from 'three';
 import { createRibbonGeometry } from './ribbon';
 import { TensionWave } from './wave';
 import tensionVert from '../../shaders/plates/tension.vert.glsl';
@@ -42,7 +35,12 @@ const SAG = 0.42;
 const resolution = new Vector2();
 
 export interface TensionHandle {
-  step: (gl: WebGLRenderer, elapsed: number, touch: Texture | null) => void;
+  /**
+   * The wave takes the pointer through `setPointer` (the bare coordinate, which
+   * is what "which station is held" needs) rather than through the shared touch
+   * field — see the note in src/gl/pointer.ts on why both exist.
+   */
+  step: (gl: WebGLRenderer, elapsed: number, freeze?: boolean) => void;
   setLocalTime: (t: number, weight: number) => void;
   setPointer: (x: number, y: number, pressure: number) => void;
   dispose: () => void;
@@ -88,8 +86,8 @@ export function Tension() {
 
   useEffect(() => {
     const handle: TensionHandle = {
-      step(renderer, elapsed, touch) {
-        wave.step(renderer, elapsed, touch);
+      step(renderer, elapsed, freeze = false) {
+        wave.step(renderer, elapsed, freeze);
         const u = material.uniforms;
         if (u.uWave) u.uWave.value = wave.texture;
       },

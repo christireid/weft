@@ -93,6 +93,26 @@ export function readScroll(out: ScrollReading): ScrollReading {
   return out;
 }
 
+/**
+ * Move the document by `delta` pixels, through Lenis.
+ *
+ * Not `window.scrollBy`. Lenis writes its own animated position to the window
+ * every frame, so a native scroll is overwritten before it is ever painted —
+ * which is why the keyboard nudge in §6.1 silently did nothing until this
+ * existed. Routing through Lenis also keeps the single-scroll-authority rule in
+ * §5.2 intact rather than introducing a competing one.
+ *
+ * Falls back to the native call when Lenis has not initialised, so the keyboard
+ * still works on the no-WebGL path where the renderer never mounts.
+ */
+export function nudgeScroll(delta: number): void {
+  if (lenis) {
+    lenis.scrollTo(lenis.actualScroll + delta, { duration: 0.6 });
+    return;
+  }
+  window.scrollBy({ top: delta, behavior: 'smooth' });
+}
+
 export function destroyScroll(): void {
   lenis?.destroy();
   lenis = null;

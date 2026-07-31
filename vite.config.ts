@@ -1,10 +1,19 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import glsl from 'vite-plugin-glsl';
+import { prerenderPlugin } from './tools/prerender.mjs';
 
 export default defineConfig({
   plugins: [
     react(),
+    /*
+     * §5.1's entire justification for choosing Vite over Next.js is that "SEO is
+     * solved by build-time prerender of the text layer into index.html". This is
+     * that prerender. Without it the built index.html ships an empty div and
+     * §6.1's promise of a complete document without a WebGL frame holds only for
+     * visitors whose JavaScript ran.
+     */
+    prerenderPlugin(),
     /*
      * Shader chunks are real .glsl files with #include, not template strings in
      * TypeScript. §5.4 requires a documented chunk library, and a chunk you can

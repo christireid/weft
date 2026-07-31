@@ -117,6 +117,7 @@ export class TensionWave {
         uIdleHz: { value: IDLE_HZ },
         uGrab: { value: 0 },
         uGrabPoint: { value: grabPoint },
+        uFreeze: { value: 0 },
         uRelease: { value: 0 },
       },
     });
@@ -146,11 +147,11 @@ export class TensionWave {
     this.grab = pressure;
   }
 
-  step(gl: WebGLRenderer, elapsed: number, touch: Texture | null): void {
+  step(gl: WebGLRenderer, elapsed: number, freeze = false): void {
     const u = this.material.uniforms;
     if (u.uTime) u.uTime.value = elapsed;
     if (u.uGrab) u.uGrab.value = this.grab;
-    if (u.uTouch) u.uTouch.value = touch;
+    if (u.uFreeze) u.uFreeze.value = freeze ? 1 : 0;
 
     for (let i = 0; i < SUBSTEPS; i++) {
       const [a, b] = this.targets;
@@ -170,9 +171,5 @@ export class TensionWave {
     this.targets[0].dispose();
     this.targets[1].dispose();
     this.material.dispose();
-  }
-
-  static get stations(): number {
-    return STATIONS;
   }
 }

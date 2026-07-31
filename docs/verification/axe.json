@@ -1,9 +1,7 @@
 {
-  "capturedAt": "2026-07-31T02:22:39.127Z",
+  "capturedAt": "2026-07-31T15:29:31.714Z",
   "url": "http://127.0.0.1:4173/",
-  "passes": 16,
-  "incomplete": [
-    "color-contrast"
-  ],
+  "passes": 27,
+  "incomplete": [],
   "violations": []
 }

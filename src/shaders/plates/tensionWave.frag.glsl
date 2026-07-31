@@ -34,7 +34,6 @@
 precision highp float;
 
 uniform sampler2D uState;
-uniform sampler2D uTouch;      // the shared pointer field (ADR-0002)
 uniform float uStations;       // texels along the thread
 uniform float uCourant;        // C = c·dt/dx — see the stability note below
 uniform float uDamping;        // γ·dt
@@ -43,13 +42,40 @@ uniform float uIdleAmplitude;  // §2: 0.004–0.010 world units
 uniform float uIdleHz;         // §2: ~0.3 Hz
 uniform float uGrab;           // pointer pressure, 0–1
 uniform vec2 uGrabPoint;       // pointer in thread space: x = along, y = offset
-uniform float uRelease;        // 1 on the frame the pointer lets go
+uniform float uFreeze;         // 1 in Specimen Mode (§6.2)
 
 varying vec2 vUv;
 
 void main() {
   float dx = 1.0 / uStations;
   float x = vUv.x;
+
+  /*
+   * Specimen Mode (§6.2): assign rather than integrate.
+   *
+   * Pinning the clock is not enough to freeze this. The wave equation is an
+   * *integrator* — every invocation advances the stored state whatever time it
+   * is told — so a constant `uTime` freezes only the forcing term and the frame
+   * keeps changing. Two screenshots 2.5 s apart proved it.
+   *
+   * So in Specimen Mode the shader stops solving and simply *states* the pose:
+   * the idle standing wave evaluated at a fixed instant. That makes the step
+   * idempotent, so the frame is byte-identical from one to the next without
+   * needing to count settling frames — which was the second thing that did not
+   * work, because at a software rasteriser's frame rate a 150-frame settle is
+   * half a minute.
+   *
+   * §6.2 calls reduced motion "a designed state, not a disabled state", and
+   * this is the shape of that: the thread is still a thread, held at its most
+   * legible moment rather than blanked.
+   */
+  if (uFreeze > 0.5) {
+    float env = sin(x * 3.14159265);
+    float pose = sin(x * 6.2831853 - uTime * uIdleHz * 6.2831853) * env * uIdleAmplitude;
+    float mask = step(0.5 * dx, x) * step(x, 1.0 - 0.5 * dx);
+    gl_FragColor = vec4(pose * mask, pose * mask, 0.0, 1.0);
+    return;
+  }
 
   vec2 state = texture2D(uState, vUv).rg;
   float current = state.r;

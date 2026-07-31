@@ -64,6 +64,34 @@ let lastPointerX = 0.5;
  */
 const RENDER_PRIORITY = 1;
 
+/**
+ * The clock value every plate is held at in Specimen Mode.
+ *
+ * Fixed rather than frozen-at-current, so the frozen frame is the same one
+ * every time and can be captured for the no-WebGL fallback (§6.3) and for the
+ * README's accessibility comparison. Chosen so the idle standing wave sits near
+ * a crest — the most legible moment for a thread whose subject is its shape.
+ */
+const SPECIMEN_FROZEN_TIME = 1.7;
+
+/**
+ * Frames Specimen Mode steps before it stops stepping.
+ *
+ * Pinning the clock is not enough: the wave equation is an *integrator*, so
+ * every call advances its state whatever time it is told. Feeding it a constant
+ * `uTime` freezes only the forcing term, and the frames keep changing — which
+ * is what the reduced-motion test measured, two screenshots 2.5 s apart that
+ * were not identical.
+ *
+ * The plates solve this properly, by making their frozen state *idempotent*
+ * (see the uFreeze branch in tensionWave.frag.glsl) so they can be stepped
+ * every frame and still produce the same pixels. Only the shared touch field
+ * needs a window, to decay any in-flight stamp; 12 frames is enough for that
+ * and does not depend on the frame rate the way 150 did — at a software
+ * rasteriser's ~220 ms it would have been half a minute before anything froze.
+ */
+const SPECIMEN_SETTLE_FRAMES = 12;
+
 export function FrameLoop() {
   const gl = useThree((state) => state.gl);
   const size = useThree((state) => state.size);
@@ -116,6 +144,24 @@ export function FrameLoop() {
 
     updateRouter(frame.router, frame.progress);
 
+    /*
+     * §6.2: reduced motion is a *designed* state, not a disabled one. The full
+     * Specimen Mode rendering path — frozen at each plate's most legible frame,
+     * with the annotation layer on — is L4 task 4.
+     *
+     * What must be true *now*, and was not: a visitor who has asked their
+     * operating system for reduced motion must not be shown moving simulations
+     * while that path is being built. So the simulations stop stepping and each
+     * plate is held at its most legible local time. Honouring the preference
+     * partially is still honouring it; ignoring it until the pretty version
+     * arrives is not.
+     */
+    const specimen = appStore.getState().specimenMode;
+    // Once settled, nothing advances. See SPECIMEN_SETTLE_FRAMES.
+    // Only the touch field needs a settle window; the plates are idempotent
+    // under freeze and can be called every frame.
+    const frozen = specimen && frame.count > SPECIMEN_SETTLE_FRAMES;
+
     // Measured on the *raw* delta, not the clamped one: clamping is a
     // simulation safeguard, and feeding the clamp into the sampler would hide
     // exactly the slow frames the tier system exists to notice.
@@ -123,7 +169,14 @@ export function FrameLoop() {
 
     // Before anything samples it: a plate reading last frame's field would lag
     // the pointer by 16 ms, which §1.2 counts as a failure of response.
-    touch.step(gl, frame.delta, size.width / Math.max(1, size.height));
+    /*
+     * The pointer field decays fast in Specimen Mode rather than being skipped
+     * outright, so a mode change mid-gesture does not leave a stamp frozen on
+     * screen — and then stops once it has decayed to nothing.
+     */
+    if (!frozen) {
+      touch.step(gl, specimen ? 0.25 : frame.delta, size.width / Math.max(1, size.height));
+    }
 
     /*
      * Active plates step here, in table order, and only when live. §7 L1 task 2:
@@ -135,8 +188,17 @@ export function FrameLoop() {
       const slot = frame.router.slots[0];
       if (slot?.active) {
         tension.setLocalTime(slot.t, slot.weight);
-        tension.setPointer(pointerState.x, pointerState.y, pointerState.pressure);
-        tension.step(gl, frame.elapsed, touch.texture);
+        if (specimen) {
+          // Held at rest: no pointer drive, pinned clock, and no stepping at
+          // all once the pose has settled.
+          tension.setPointer(0.5, 0.5, 0);
+          // Idempotent in freeze mode, so it is safe to call every frame and
+          // no settle counter is needed.
+          tension.step(gl, SPECIMEN_FROZEN_TIME, true);
+        } else {
+          tension.setPointer(pointerState.x, pointerState.y, pointerState.pressure);
+          tension.step(gl, frame.elapsed);
+        }
       }
     }
 
@@ -166,8 +228,12 @@ export function FrameLoop() {
       const slot = frame.router.slots[1];
       if (slot?.active) {
         dispersion.setLocalTime(slot.t, slot.weight);
-        dispersion.drag(pointerState.x - lastPointerX, pointerState.pressure);
-        dispersion.render(gl, frame.elapsed, touch.texture);
+        if (specimen) {
+          dispersion.render(gl, SPECIMEN_FROZEN_TIME, touch.texture);
+        } else {
+          dispersion.drag(pointerState.x - lastPointerX, pointerState.pressure);
+          dispersion.render(gl, frame.elapsed, touch.texture);
+        }
       }
     }
     lastPointerX = pointerState.x;

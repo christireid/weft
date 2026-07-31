@@ -57,11 +57,10 @@ function configure(gl: WebGLRenderer): void {
 
 export function Stage() {
   /*
-   * Asked before the Canvas mounts, because r3f throws during construction on a
-   * context it cannot create — and that would take the DOM text layer down with
-   * it. §6.1 promises a complete document without a WebGL frame; that has to
-   * hold on a browser that cannot draw one. The presentable static fallback is
-   * L5 task 4; this is the part that keeps the page alive until then.
+   * The capability check lives in App, which is what decides whether to load
+   * this module at all — r3f throws during construction on a context it cannot
+   * create, and that would take the DOM text layer down with it. This guard
+   * stays as a second line of defence for anyone importing Stage directly.
    */
   if (!hasWebGL2()) {
     if (appStore.getState().tier !== 4) appStore.getState().setTier(4);

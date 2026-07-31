@@ -126,12 +126,6 @@ export class Composite {
     renderFullscreen(gl, this.material, null);
   }
 
-  setDither(strength: number, blueWeight: number): void {
-    const u = this.material.uniforms;
-    if (u.uDitherStrength) u.uDitherStrength.value = strength;
-    if (u.uBlueWeight) u.uBlueWeight.value = blueWeight;
-  }
-
   dispose(): void {
     this.target.dispose();
     this.material.dispose();

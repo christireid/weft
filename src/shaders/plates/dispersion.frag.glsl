@@ -37,7 +37,6 @@
 precision highp float;
 
 #include "../lib/spectral.glsl";
-#include "../lib/sdf.glsl";
 #include "../lib/easing.glsl";
 
 uniform vec2 uResolution;
@@ -48,7 +47,6 @@ uniform float uWeight;        // router weight
 uniform float uWedgeAngle;    // drag-controlled, radians
 uniform float uApex;          // prism apex angle, radians
 uniform int uSamples;         // wavelengths, by device tier
-uniform float uEntry;         // 1 while the beam is arriving from Plate I
 uniform float uCoherence;     // 1 coherent, 0 fully diverged (the exit)
 
 varying vec2 vUv;
@@ -114,11 +112,8 @@ void main() {
     -wedgeLocal.y * 0.5
   ) - WEDGE_SIZE;
 
-  /*
-   * Entry: the beam arrives along the axis Plate I's thread departed on, so the
-   * hand-off has no cut. uEntry is driven from the blend band, where Plate I is
-   * still stepping.
-   */
+  // The beam runs along the axis Plate I's thread departed on, so the hand-off
+  // across the blend band has no cut.
   vec2 origin = vec2(-2.2, 0.0);
   vec2 direction = normalize(vec2(1.0, 0.0));
 

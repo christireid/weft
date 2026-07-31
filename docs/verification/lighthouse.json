@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-07-31T02:24:42.140Z",
+  "capturedAt": "2026-07-31T15:31:09.082Z",
   "url": "http://127.0.0.1:4173/",
   "lighthouseVersion": "13.4.1",
   "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.0.0 Safari/537.36",
@@ -9,5 +9,5 @@
     "seo": 100
   },
   "failedAudits": [],
-  "accessibilityAuditsPassed": 9
+  "accessibilityAuditsPassed": 18
 }

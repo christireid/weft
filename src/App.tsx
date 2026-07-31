@@ -1,8 +1,24 @@
-import { Stage } from './gl/Stage';
-import { identity } from './config/identity';
-import { PLATES, sectionHeightVh } from './config/plates';
+import { Suspense, lazy, useSyncExternalStore } from 'react';
+import { hasWebGL2 } from './gl/capability';
+import { StaticShell } from './document/StaticShell';
 import { DebugOverlay } from './ui/DebugOverlay';
 import { useKeyboard } from './ui/useKeyboard';
+
+/*
+ * The renderer is loaded lazily, and only when it can run.
+ *
+ * `three` is 190 KB gzipped — over half the bundle. A visitor without WebGL2
+ * (§5.6 tier 4) can never render a frame, and was downloading all of it anyway
+ * before paying to parse it. On 4G that is seconds spent on code that will not
+ * execute, ahead of the text layer they actually came for.
+ *
+ * Splitting it behind `hasWebGL2()` also means the document layer paints from
+ * the prerendered markup without waiting on the renderer chunk at all.
+ */
+const Stage = lazy(async () => {
+  const mod = await import('./gl/Stage');
+  return { default: mod.Stage };
+});
 
 /*
  * The DOM is the source of truth (§6.1). Everything a visitor can read lives
@@ -17,41 +33,35 @@ import { useKeyboard } from './ui/useKeyboard';
 export function App() {
   useKeyboard();
 
+  /*
+   * The renderer mounts after hydration, never during it.
+   *
+   * React's first client render has to match the prerendered markup exactly or
+   * it discards the server HTML — which would undo the whole point of the
+   * prerender. `mounted` guarantees the first pass is the shell and nothing
+   * else; the canvas is appended on the next tick.
+   *
+   * `useSyncExternalStore` rather than `useState` + `useEffect`: it is the hook
+   * built for exactly this — a value that differs between the server snapshot
+   * and the client — and it avoids the cascading render that setting state
+   * inside an effect causes.
+   */
+  const mounted = useSyncExternalStore(
+    // Never changes after the first client render, so it needs no subscription.
+    () => () => undefined,
+    () => true, // client
+    () => false, // server / hydration pass
+  );
+
   return (
     <>
-      <Stage />
-      <DebugOverlay />
-
-      <main className="document" id="catalogue">
-        <header className="masthead">
-          <p className="annotation annotation--leader">
-            <span>Specimen series · 2026</span>
-          </p>
-          <h1 className="display display--xl">{identity.name}</h1>
-          <p className="lede">{identity.tagline}</p>
-        </header>
-
-        {PLATES.map((plate) => (
-          <section
-            key={plate.id}
-            id={`plate-${plate.numeral.toLowerCase()}`}
-            className="plate"
-            style={{ minHeight: `${String(sectionHeightVh(plate))}svh` }}
-            aria-labelledby={`plate-${plate.numeral.toLowerCase()}-title`}
-          >
-            <h2 id={`plate-${plate.numeral.toLowerCase()}-title`} className="plate__title">
-              <span className="annotation annotation--leader plate__index">
-                <span>
-                  Plate {plate.numeral} · {plate.label}
-                </span>
-              </span>
-              {plate.subtitle ? (
-                <span className="display display--m plate__subtitle">{plate.subtitle}</span>
-              ) : null}
-            </h2>
-          </section>
-        ))}
-      </main>
+      <StaticShell />
+      {mounted && hasWebGL2() ? (
+        <Suspense fallback={null}>
+          <Stage />
+        </Suspense>
+      ) : null}
+      {mounted ? <DebugOverlay /> : null}
     </>
   );
 }

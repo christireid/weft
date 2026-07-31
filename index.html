@@ -16,9 +16,19 @@
     <meta property="og:type" content="website" />
     <meta property="og:title" content="WEFT" />
     <meta property="og:description" content="Field notes on a material that does not exist." />
-    <meta property="og:image" content="/og.png" />
+    <!--
+      Absolute, because every social scraper resolves og:image against nothing.
+      Points at the repository copy until the site has an origin of its own.
+    -->
+    <meta
+      property="og:image"
+      content="https://raw.githubusercontent.com/christireid/weft/main/docs/media/og.png"
+    />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="/og.png" />
+    <meta
+      name="twitter:image"
+      content="https://raw.githubusercontent.com/christireid/weft/main/docs/media/og.png"
+    />
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
@@ -59,6 +69,47 @@
   </head>
   <body>
     <div id="weft"></div>
+
+    <!--
+      §6.1 promises a complete document without a single WebGL frame. That has
+      to hold when the frame never arrives at all — a failed chunk on 4G, a
+      blocked script, a crawler that does not execute JS. The prerendered text
+      layer above covers the crawler; this covers the visitor, and it is written
+      in the same voice as the rest of the piece rather than as an apology.
+    -->
+    <noscript>
+      <style>
+        #weft {
+          display: none;
+        }
+        .noscript {
+          max-width: 62ch;
+          padding: 12vh 6vw;
+          color: #f7f7f5;
+          font-family: ui-sans-serif, system-ui, sans-serif;
+        }
+        .noscript h1 {
+          font-family: 'Bodoni Moda Variable', Didot, serif;
+          font-size: clamp(3rem, 12vw, 8rem);
+          font-weight: 500;
+          letter-spacing: -0.028em;
+          margin: 0;
+        }
+        .noscript p {
+          color: rgba(247, 247, 245, 0.6);
+          line-height: 1.62;
+        }
+      </style>
+      <div class="noscript">
+        <h1>WEFT</h1>
+        <p>Field notes on a material that does not exist.</p>
+        <p>
+          This is a specimen catalogue of six plates, each one a condition applied to a single
+          filament. Every frame is computed live, which means this page needs JavaScript to draw
+          anything at all. The catalogue text is below regardless.
+        </p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
