@@ -18,7 +18,7 @@ import { disposeTouchDebug, drawTouchDebug } from './touchDebugView';
 import { createTierController, stepTierController } from '../perf/controller';
 import { setTierController } from './registry';
 import { Composite } from './composite';
-import { getTensionPlate } from './registry';
+import { getDispersionPlate, getTensionPlate } from './registry';
 
 /**
  * The single frame loop (§5.2).
@@ -51,6 +51,9 @@ const scratch: ScrollReading = { progress: 0, velocity: 0, direction: 0 };
  * classic "come back to the tab and the cloth has turned inside out".
  */
 const MAX_DELTA = 0.05;
+
+/** Previous pointer x, for plates that want a drag delta rather than a position. */
+let lastPointerX = 0.5;
 
 /**
  * Any non-zero priority makes r3f hand rendering over to this callback instead
@@ -152,6 +155,23 @@ export function FrameLoop() {
     gl.setRenderTarget(composite.sceneTarget);
     gl.clear();
     gl.render(state.scene, state.camera);
+
+    /*
+     * Fullscreen plate passes draw into the same scene buffer, after the scene
+     * geometry, before the composite. Plate II is a light-transport problem
+     * rather than a shape one and has no geometry of its own.
+     */
+    const dispersion = getDispersionPlate();
+    if (dispersion) {
+      const slot = frame.router.slots[1];
+      if (slot?.active) {
+        dispersion.setLocalTime(slot.t, slot.weight);
+        dispersion.drag(pointerState.x - lastPointerX, pointerState.pressure);
+        dispersion.render(gl, frame.elapsed, touch.texture);
+      }
+    }
+    lastPointerX = pointerState.x;
+
     gl.setRenderTarget(null);
     composite.present(gl);
 

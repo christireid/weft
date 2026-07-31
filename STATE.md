@@ -1,6 +1,6 @@
 # STATE
 
-**Current loop:** L2 · task 1 (Plate I) done, tasks 2–3 not started
+**Current loop:** L2 · tasks 1–2 done (Plates I–II), task 3 not started
 **Last updated:** 2026-07-31
 **`pnpm verify`:** green
 **BLOCKERS:** none open
@@ -21,11 +21,11 @@ pnpm a11y                # axe-core → docs/verification/axe.json
 pnpm preview & pnpm lh   # Lighthouse a11y → docs/verification/lighthouse.json
 ```
 
-**Next task: L2 task 2** — Plate II, DISPERSIO: the draggable glass wedge, the 16-sample
-spectral refraction loop, and velocity-aligned motion trails. `spectral.glsl` and the fitted
-CMFs are already built and GPU-tested; what Plate II adds is the wedge geometry, the drag
-interaction, and compositing the DOM text into the scene so the spectrum falls on the
-letterforms.
+**Next task: L2 task 3** — Plate III, TURBULENTIA: the filament frays into GPGPU particles
+advected through the curl field. `curl.glsl` and `simplex3d.glsl` are built and GPU-tested
+(divergence 6.98e-3); what Plate III adds is the position/velocity ping-pong pair, the
+velocity-stretched point rendering, and the bloom pass with the luminance cap §2 requires
+_before_ bloom rather than after.
 
 `pnpm gate:l1` re-runs the L1 exit gate (~5 min here, see D-019). `pnpm shaders` runs the
 chunk tests. `pnpm capture --at <t> --debug` puts the HUD in a still.

@@ -1,6 +1,7 @@
 import type { TouchField } from './touch';
 import type { TierController } from '../perf/controller';
 import type { TensionHandle } from '../plates/tension/Tension';
+import type { DispersionHandle } from '../plates/dispersion/Dispersion';
 
 /**
  * Handles on the shared GPU primitives, for consumers outside the React tree.
@@ -48,4 +49,14 @@ export function setTensionPlate(handle: TensionHandle | null): void {
 
 export function getTensionPlate(): TensionHandle | null {
   return tensionPlate;
+}
+
+let dispersionPlate: DispersionHandle | null = null;
+
+export function setDispersionPlate(handle: DispersionHandle | null): void {
+  dispersionPlate = handle;
+}
+
+export function getDispersionPlate(): DispersionHandle | null {
+  return dispersionPlate;
 }

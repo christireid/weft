@@ -359,6 +359,29 @@ L1 heap gate walks 600 frames, which is ~2.5 minutes of wall clock here.
 This is the same principle as D-006 and it keeps applying: measure, state which machine the
 number came from, and never let a container's limitation become the shipped claim.
 
+## D-020 · L2 · The wedge glass has an Abbe number no real glass has
+
+Plate II's first pass used endpoint indices 1.62 / 1.58 — roughly a real crown glass. The
+deviation spread across the entire visible band was then about 6%, far narrower than the
+beam's own angular width, so the light **bent without visibly separating**. Physically
+faithful, and at this throw distance a failure of the plate's one job: a real prism needs
+close to a metre of throw to fan a spectrum, and this one has half a viewport.
+
+Changed to 1.78 at 380 nm and 1.46 at 740 nm — about ten times the dispersion of a real
+flint glass. This is the payoff of D-014 rather than a fudge of it: WEFT documents a material
+that does not exist, so its wedge is not obliged to be N-BK7. What has to stay real is
+Cauchy's _form_, the 1/λ² law, and it does — the red end of the fan is visibly compressed
+relative to the blue, which is the signature that distinguishes dispersion from a gradient.
+
+The beam was thinned at the same time (0.030 → 0.008 across the plate), because the fan is
+only resolvable when the angular spread between wavelengths exceeds the beam's own angular
+width. A fat beam hides its own spectrum.
+
+Verified by looking: violet deviated most, through green, to red least, continuous across the
+fan with no banding between wavelengths and no ghosted copies. That last property is what
+rubric axis 3 scores and it is why §5.1 rejects the stock three-sample ChromaticAberration
+pass.
+
 ---
 
 ## Delegated copy (§4.3)
