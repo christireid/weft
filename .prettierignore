@@ -1,0 +1,6 @@
+dist
+node_modules
+public/fonts
+pnpm-lock.yaml
+docs/media
+docs/verification

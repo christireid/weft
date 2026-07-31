@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="WEFT">
+  <rect width="32" height="32" fill="#050507"/>
+  <!-- One filament, held under load: the shallow catenary of Plate I. -->
+  <path d="M3 11 Q16 24 29 11" fill="none" stroke="#F7F7F5" stroke-width="1.25" stroke-linecap="round"/>
+  <path d="M3 11 Q16 24 29 11" fill="none" stroke="#F7F7F5" stroke-width="3.5" stroke-linecap="round" opacity="0.12"/>
+</svg>

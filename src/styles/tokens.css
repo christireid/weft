@@ -1,0 +1,72 @@
+/*
+ * WEFT — token layer
+ *
+ * There is no accent colour in this file, and there must never be one.
+ * Every chromatic value in the piece is produced by the dispersion shader
+ * from a single white source (spec §3.1). The tokens below are the complete
+ * set of authored colours: one void, four weights of one ink.
+ */
+
+:root {
+  /* --- neutrals (spec §3.1) ------------------------------------------- */
+  --void: #050507;
+  --ink-100: #f7f7f5;
+  --ink-60: rgba(247, 247, 245, 0.6);
+  --ink-35: rgba(247, 247, 245, 0.35);
+  --ink-12: rgba(247, 247, 245, 0.12);
+
+  /* --- families ------------------------------------------------------- */
+  --face-display: 'Bodoni Moda Variable', 'Bodoni Moda', 'Didot', 'Times New Roman', serif;
+  --face-body: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --face-mono: 'Geist Mono Variable', 'Geist Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /*
+   * Display scale. The clamp floor is set so the masthead still reads as a
+   * display setting on a 360px phone; the ceiling matches the 96–200px
+   * desktop range in §3.2. `opsz` is driven from viewport width in
+   * src/styles/global.css so the Didone hairlines thin out as the type grows,
+   * which is what gives the dispersion pass something to fringe.
+   */
+  --step-display-xl: clamp(3.5rem, 13.2vw, 12.5rem); /*  56 → 200px */
+  --step-display-l: clamp(2.75rem, 8.4vw, 6rem); /*  44 →  96px */
+  --step-display-m: clamp(2rem, 5.2vw, 3.75rem); /*  32 →  60px */
+
+  --step-body-l: clamp(1.0625rem, 0.98rem + 0.42vw, 1.3125rem); /* 17 → 21px */
+  --step-body: clamp(0.9375rem, 0.9rem + 0.24vw, 1.0625rem); /* 15 → 17px */
+  --step-annotation: clamp(0.6875rem, 0.66rem + 0.12vw, 0.75rem); /* 11 → 12px */
+
+  /* --- tracking -------------------------------------------------------- */
+  --track-display-xl: -0.028em;
+  --track-display-l: -0.018em;
+  --track-display-m: -0.01em;
+  --track-body: 0;
+  --track-annotation: 0.14em;
+
+  /* --- leading --------------------------------------------------------- */
+  --lead-display: 0.9;
+  --lead-body: 1.62;
+  --lead-annotation: 1.35;
+
+  /* --- measure --------------------------------------------------------- */
+  --measure: 62ch;
+  --measure-narrow: 44ch;
+
+  /* --- rhythm ---------------------------------------------------------- */
+  --gutter: clamp(1.25rem, 4vw, 3.5rem);
+  --rule: 1px;
+
+  /*
+   * Motion language (§5.5). One family across DOM and GPU. The GLSL twins of
+   * these curves live in src/shaders/lib/easing.glsl so a DOM element and a
+   * shader-driven vertex can share a timing function and agree about it.
+   */
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.7, 0, 0.84, 0);
+
+  --dur-micro: 150ms;
+  --dur-element: 500ms;
+  /* plate transitions are scroll-scrubbed and therefore have no duration */
+
+  /* --- focus ----------------------------------------------------------- */
+  --focus-ring: 2px;
+}

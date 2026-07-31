@@ -1,0 +1,73 @@
+{
+  "name": "weft",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Field notes on a material that does not exist.",
+  "license": "MIT",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "verify": "tsc --noEmit && eslint . --max-warnings 0 && vitest run && vite build",
+    "capture": "node tools/capture.mjs",
+    "perf": "playwright test tools/perf.spec.ts",
+    "a11y": "playwright test tools/a11y.spec.ts",
+    "fonts:sync": "node tools/sync-fonts.mjs",
+    "lh": "node tools/lighthouse.mjs"
+  },
+  "dependencies": {
+    "@react-three/drei": "10.7.7",
+    "@react-three/fiber": "9.6.1",
+    "@react-three/postprocessing": "3.0.4",
+    "gsap": "3.15.0",
+    "lenis": "1.3.25",
+    "postprocessing": "6.39.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "three": "0.185.1",
+    "zustand": "5.0.14"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@eslint/js": "10.0.1",
+    "@fontsource-variable/bodoni-moda": "5.3.0",
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
+    "@playwright/test": "1.62.1",
+    "@types/node": "26.1.2",
+    "@types/pngjs": "^6.0.5",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@types/three": "0.185.1",
+    "@vitejs/plugin-react": "5.2.0",
+    "chrome-launcher": "^1.2.1",
+    "eslint": "10.8.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.3",
+    "globals": "17.8.0",
+    "jsdom": "30.0.1",
+    "leva": "0.10.1",
+    "lighthouse": "13.4.1",
+    "pngjs": "^7.0.0",
+    "prettier": "3.9.6",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.65.0",
+    "vite": "6.4.3",
+    "vitest": "4.1.10"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

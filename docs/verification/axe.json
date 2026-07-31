@@ -1,0 +1,9 @@
+{
+  "capturedAt": "2026-07-31T02:22:39.127Z",
+  "url": "http://127.0.0.1:4173/",
+  "passes": 16,
+  "incomplete": [
+    "color-contrast"
+  ],
+  "violations": []
+}

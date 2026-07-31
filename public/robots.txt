@@ -1,0 +1,3 @@
+# WEFT — field notes on a material that does not exist.
+User-agent: *
+Allow: /

@@ -1,0 +1,177 @@
+@import './tokens.css';
+@import './fonts.css';
+
+/* --- reset ------------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Lenis drives scrolling in L1; native smooth scroll would fight it. */
+  scroll-behavior: auto;
+  -webkit-text-size-adjust: 100%;
+}
+
+body,
+h1,
+h2,
+h3,
+p,
+figure,
+dl,
+dd {
+  margin: 0;
+}
+
+body {
+  min-height: 100svh;
+  background: var(--void);
+  color: var(--ink-60);
+  font-family: var(--face-body);
+  font-size: var(--step-body);
+  line-height: var(--lead-body);
+  font-synthesis-weight: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+canvas {
+  display: block;
+}
+
+::selection {
+  background: var(--ink-100);
+  color: var(--void);
+}
+
+/* --- the persistent canvas --------------------------------------------- */
+
+/*
+ * There is exactly one canvas in the application and it never unmounts
+ * (§5.2). It sits behind the document at z-index 0 and is inert to the
+ * accessibility tree and to pointer capture — pointer events are read from
+ * window listeners so text underneath stays selectable.
+ */
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--void);
+}
+
+/* --- document layer ----------------------------------------------------- */
+
+.document {
+  position: relative;
+  z-index: 1;
+  padding: 0 var(--gutter);
+}
+
+/* --- type roles --------------------------------------------------------- */
+
+.masthead {
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  max-width: 1600px;
+  margin-inline: auto;
+}
+
+.display {
+  font-family: var(--face-display);
+  font-weight: 500;
+  color: var(--ink-100);
+  line-height: var(--lead-display);
+  text-wrap: balance;
+}
+
+.display--xl {
+  font-size: var(--step-display-xl);
+  letter-spacing: var(--track-display-xl);
+  /*
+   * The optical-size axis is bound to viewport width rather than to font-size
+   * so the hairlines keep thinning past the point where the clamp tops out.
+   * At 200px this sits near the top of Bodoni's opsz range, where the thin
+   * strokes are at their most fragile — which is exactly the stroke width the
+   * dispersion pass needs to fringe against.
+   */
+  font-variation-settings: 'opsz' clamp(24, 6vw, 96);
+}
+
+.lede {
+  font-size: var(--step-body-l);
+  color: var(--ink-60);
+  max-width: var(--measure);
+  margin-top: 1.25rem;
+}
+
+/*
+ * §3.1 lists --ink-35 against "annotations, rules". Composited over the void
+ * that is 2.95:1, which fails WCAG AA for text at any size, and §6 / rubric
+ * axis 6 are not negotiable. The token values are unchanged; what changes is
+ * the assignment. Annotation *text* is set in --ink-60 (6.88:1) and --ink-35
+ * is reserved for the leader rules and the Specimen Mode wireframe — marks
+ * that carry no information the adjacent text does not already carry.
+ *
+ * The hierarchy that --ink-35 was doing by value is done by size and tracking
+ * instead: 12px mono at 0.14em against 21px Geist does not compete.
+ * See DECISIONS.md and tests/contrast.test.ts.
+ */
+.annotation {
+  font-family: var(--face-mono);
+  font-size: var(--step-annotation);
+  letter-spacing: var(--track-annotation);
+  line-height: var(--lead-annotation);
+  text-transform: uppercase;
+  color: var(--ink-60);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * §3.2: an annotation is always accompanied by a hairline leader pointing at
+ * what it annotates. The rule is drawn here rather than as a border so it can
+ * be animated independently of the label.
+ */
+.annotation--leader {
+  display: grid;
+  grid-template-columns: minmax(1.5rem, 4rem) auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.annotation--leader::before {
+  content: '';
+  height: var(--rule);
+  background: var(--ink-35);
+}
+
+/* --- focus -------------------------------------------------------------- */
+
+:where(a, button, [tabindex]):focus-visible {
+  outline: var(--focus-ring) solid var(--ink-100);
+  outline-offset: 4px;
+}
+
+/* --- reduced motion ------------------------------------------------------ */
+
+/*
+ * Reduced motion is a designed state, not a disabled state (§6.2). The full
+ * Specimen Mode rendering path is built in L4; this rule only guarantees that
+ * no DOM-layer transition runs before that path exists, so the preference is
+ * never ignored at any point in the build.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

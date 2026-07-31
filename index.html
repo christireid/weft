@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#050507" />
+
+    <title>WEFT — Field notes on a material that does not exist</title>
+    <meta
+      name="description"
+      content="A scroll-driven specimen catalogue documenting six properties of an invented filament. Every frame is computed live in WebGL; there is no video anywhere in this site."
+    />
+    <meta name="author" content="Christi Reid" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="WEFT" />
+    <meta property="og:description" content="Field notes on a material that does not exist." />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <!--
+      The three latin-subset variable faces are all used in the first viewport
+      (display, body, annotation), so all three are preloaded. Total 99 KB.
+    -->
+    <link
+      rel="preload"
+      href="/fonts/bodoni-moda-latin-standard-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/geist-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/geist-mono-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <style>
+      /* Paint the void before the stylesheet lands, so there is never a flash of white. */
+      html,
+      body {
+        background: #050507;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="weft"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
