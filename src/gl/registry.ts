@@ -1,5 +1,6 @@
 import type { TouchField } from './touch';
 import type { TierController } from '../perf/controller';
+import type { TensionHandle } from '../plates/tension/Tension';
 
 /**
  * Handles on the shared GPU primitives, for consumers outside the React tree.
@@ -32,4 +33,19 @@ export function setTierController(controller: TierController | null): void {
 
 export function getTierController(): TierController | null {
   return tierController;
+}
+
+let tensionPlate: TensionHandle | null = null;
+
+/**
+ * Plate I's handle. Plates register here rather than registering a `useFrame`
+ * of their own — there is exactly one in the application (ADR-0001), and the
+ * router decides which plates it calls each frame.
+ */
+export function setTensionPlate(handle: TensionHandle | null): void {
+  tensionPlate = handle;
+}
+
+export function getTensionPlate(): TensionHandle | null {
+  return tensionPlate;
 }

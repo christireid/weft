@@ -1,6 +1,6 @@
 # STATE
 
-**Current loop:** L1 complete → entering L2
+**Current loop:** L2 · task 1 (Plate I) done, tasks 2–3 not started
 **Last updated:** 2026-07-31
 **`pnpm verify`:** green
 **BLOCKERS:** none open
@@ -21,10 +21,14 @@ pnpm a11y                # axe-core → docs/verification/axe.json
 pnpm preview & pnpm lh   # Lighthouse a11y → docs/verification/lighthouse.json
 ```
 
-**Next task: L2 task 1** — Plate I, TENSIO: the screen-facing ribbon, the standing wave, the
-pointer grab with damped travelling waves, and the exit transformation into Plate II's beam.
+**Next task: L2 task 2** — Plate II, DISPERSIO: the draggable glass wedge, the 16-sample
+spectral refraction loop, and velocity-aligned motion trails. `spectral.glsl` and the fitted
+CMFs are already built and GPU-tested; what Plate II adds is the wedge geometry, the drag
+interaction, and compositing the DOM text into the scene so the spectrum falls on the
+letterforms.
 
-`pnpm gate:l1` re-runs the L1 exit gate. It takes ~5 minutes here — see D-019.
+`pnpm gate:l1` re-runs the L1 exit gate (~5 min here, see D-019). `pnpm shaders` runs the
+chunk tests. `pnpm capture --at <t> --debug` puts the HUD in a still.
 
 Shader chunk tests: `pnpm shaders`. Refit the colour-matching curves: `pnpm fit:cmf`.
 

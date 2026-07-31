@@ -1,6 +1,25 @@
 import type { TouchField } from './touch';
 
 /**
+ * Raw pointer state, in normalised viewport coordinates with y up.
+ *
+ * The shared touch field (ADR-0002) is the right input for anything that wants
+ * *influence over space and time* — a repulsor, a wake, a collider. A plate
+ * that needs the bare coordinate (Plate I asks "which station of the thread is
+ * being held") would have to read it back off a texture to get it, which is a
+ * GPU→CPU round trip for two floats.
+ *
+ * So both exist, written from the same handlers in the same frame. Module
+ * scope and mutated in place, never replaced (§5.2).
+ */
+export const pointerState = {
+  x: 0.5,
+  y: 0.5,
+  pressure: 0,
+  present: 0,
+};
+
+/**
  * Pointer input for the shared touch field (§5.3).
  *
  * Listeners are attached to `window`, not to the canvas, for two reasons that
@@ -23,6 +42,10 @@ export function attachPointer(field: TouchField): () => void {
     // remember which way round the field is.
     const x = event.clientX / window.innerWidth;
     const y = 1 - event.clientY / window.innerHeight;
+    pointerState.x = x;
+    pointerState.y = y;
+    pointerState.pressure = pressure;
+    pointerState.present = present ? 1 : 0;
     field.setPointer(x, y, pressure, present);
   }
 
@@ -42,6 +65,8 @@ export function attachPointer(field: TouchField): () => void {
 
   function onLeave(): void {
     pressure = 0;
+    pointerState.pressure = 0;
+    pointerState.present = 0;
     field.clearPointer();
   }
 

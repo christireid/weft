@@ -11,13 +11,14 @@ import {
 } from '../scroll/scroll';
 import { paintHud } from '../ui/debugHud';
 import { TouchField } from './touch';
-import { attachPointer } from './pointer';
+import { attachPointer, pointerState } from './pointer';
 import { setTouchField } from './registry';
 import { appStore } from '../state/store';
 import { disposeTouchDebug, drawTouchDebug } from './touchDebugView';
 import { createTierController, stepTierController } from '../perf/controller';
 import { setTierController } from './registry';
 import { Composite } from './composite';
+import { getTensionPlate } from './registry';
 
 /**
  * The single frame loop (§5.2).
@@ -120,6 +121,21 @@ export function FrameLoop() {
     // Before anything samples it: a plate reading last frame's field would lag
     // the pointer by 16 ms, which §1.2 counts as a failure of response.
     touch.step(gl, frame.delta, size.width / Math.max(1, size.height));
+
+    /*
+     * Active plates step here, in table order, and only when live. §7 L1 task 2:
+     * "only the active plate's GPGPU steps". The router has already decided
+     * which those are; this loop does not re-derive it.
+     */
+    const tension = getTensionPlate();
+    if (tension) {
+      const slot = frame.router.slots[0];
+      if (slot?.active) {
+        tension.setLocalTime(slot.t, slot.weight);
+        tension.setPointer(pointerState.x, pointerState.y, pointerState.pressure);
+        tension.step(gl, frame.elapsed, touch.texture);
+      }
+    }
 
     /*
      * Scene → HDR buffer → composite → canvas.

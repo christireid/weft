@@ -7,6 +7,7 @@ import {
   type WebGLRenderer,
 } from 'three';
 import { FrameLoop } from './FrameLoop';
+import { Tension } from '../plates/tension/Tension';
 import { hasWebGL2 } from './capability';
 import { appStore } from '../state/store';
 
@@ -86,6 +87,7 @@ export function Stage() {
         frameloop="always"
       >
         <FrameLoop />
+        <Tension />
       </Canvas>
     </div>
   );
