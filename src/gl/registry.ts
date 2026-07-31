@@ -1,4 +1,5 @@
 import type { TouchField } from './touch';
+import type { TierController } from '../perf/controller';
 
 /**
  * Handles on the shared GPU primitives, for consumers outside the React tree.
@@ -21,4 +22,14 @@ export function setTouchField(field: TouchField | null): void {
 
 export function getTouchField(): TouchField | null {
   return touchField;
+}
+
+let tierController: TierController | null = null;
+
+export function setTierController(controller: TierController | null): void {
+  tierController = controller;
+}
+
+export function getTierController(): TierController | null {
+  return tierController;
 }

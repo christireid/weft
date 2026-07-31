@@ -20,6 +20,8 @@ export function DebugOverlay() {
   const primaryRef = useRef<HTMLSpanElement>(null);
   const activeRef = useRef<HTMLSpanElement>(null);
   const fpsRef = useRef<HTMLSpanElement>(null);
+  const tierRef = useRef<HTMLSpanElement>(null);
+  const frametimeRef = useRef<HTMLSpanElement>(null);
   const rowRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
   useEffect(() => {
@@ -29,6 +31,8 @@ export function DebugOverlay() {
       primary: primaryRef.current,
       active: activeRef.current,
       fps: fpsRef.current,
+      tier: tierRef.current,
+      frametime: frametimeRef.current,
       rows: rowRefs.current,
     });
     return () => {
@@ -61,6 +65,19 @@ export function DebugOverlay() {
       <div className="hud__row">
         <span className="hud__key">fps</span>
         <span ref={fpsRef} className="hud__val">
+          —
+        </span>
+      </div>
+
+      <div className="hud__row">
+        <span className="hud__key">tier</span>
+        <span ref={tierRef} className="hud__val" data-active="true">
+          —
+        </span>
+      </div>
+      <div className="hud__row">
+        <span className="hud__key">frame ms</span>
+        <span ref={frametimeRef} className="hud__val" data-active="true">
           —
         </span>
       </div>

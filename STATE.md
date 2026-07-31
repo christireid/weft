@@ -1,6 +1,6 @@
 # STATE
 
-**Current loop:** L1 · tasks 1–4 done, 5–6 in progress
+**Current loop:** L1 · tasks 1–5 done, 6 in progress
 **Last updated:** 2026-07-31
 **`pnpm verify`:** green
 **BLOCKERS:** none open
@@ -21,8 +21,8 @@ pnpm a11y                # axe-core → docs/verification/axe.json
 pnpm preview & pnpm lh   # Lighthouse a11y → docs/verification/lighthouse.json
 ```
 
-**Next task: L1 task 5** — device tiering (§5.6) and the rolling p95 frame-time sampler,
-with 90-frame hysteresis so the tier never oscillates.
+**Next task: L1 task 6** — the post-processing chain with the custom dither pass, verified
+against a dark gradient for zero banding.
 
 Shader chunk tests: `pnpm shaders`. Refit the colour-matching curves: `pnpm fit:cmf`.
 

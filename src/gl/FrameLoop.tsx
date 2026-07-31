@@ -15,6 +15,8 @@ import { attachPointer } from './pointer';
 import { setTouchField } from './registry';
 import { appStore } from '../state/store';
 import { disposeTouchDebug, drawTouchDebug } from './touchDebugView';
+import { createTierController, stepTierController } from '../perf/controller';
+import { setTierController } from './registry';
 
 /**
  * The single frame loop (§5.2).
@@ -62,19 +64,23 @@ export function FrameLoop() {
   const size = useThree((state) => state.size);
 
   const touch = useMemo(() => new TouchField(gl), [gl]);
+  const tier = useMemo(() => createTierController(), []);
 
   useEffect(() => {
     initScroll();
     setTouchField(touch);
+    setTierController(tier);
+
     const detachPointer = attachPointer(touch);
     return () => {
       detachPointer();
       setTouchField(null);
+      setTierController(null);
       touch.dispose();
       disposeTouchDebug();
       destroyScroll();
     };
-  }, [touch]);
+  }, [touch, tier, gl]);
 
   useFrame((state, delta) => {
     const elapsed = state.clock.elapsedTime;
@@ -91,6 +97,11 @@ export function FrameLoop() {
     frame.direction = scratch.direction;
 
     updateRouter(frame.router, frame.progress);
+
+    // Measured on the *raw* delta, not the clamped one: clamping is a
+    // simulation safeguard, and feeding the clamp into the sampler would hide
+    // exactly the slow frames the tier system exists to notice.
+    stepTierController(tier, delta);
 
     // Before anything samples it: a plate reading last frame's field would lag
     // the pointer by 16 ms, which §1.2 counts as a failure of response.

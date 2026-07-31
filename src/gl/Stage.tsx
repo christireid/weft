@@ -8,6 +8,8 @@ import {
 } from 'three';
 import { VOID_HEX } from '../config/identity';
 import { FrameLoop } from './FrameLoop';
+import { hasWebGL2 } from './capability';
+import { appStore } from '../state/store';
 
 /*
  * Colour management is set once, here, and never touched again.
@@ -36,6 +38,18 @@ function configure(gl: WebGLRenderer): void {
 }
 
 export function Stage() {
+  /*
+   * Asked before the Canvas mounts, because r3f throws during construction on a
+   * context it cannot create — and that would take the DOM text layer down with
+   * it. §6.1 promises a complete document without a WebGL frame; that has to
+   * hold on a browser that cannot draw one. The presentable static fallback is
+   * L5 task 4; this is the part that keeps the page alive until then.
+   */
+  if (!hasWebGL2()) {
+    if (appStore.getState().tier !== 4) appStore.getState().setTier(4);
+    return null;
+  }
+
   return (
     <div className="stage" aria-hidden="true" data-stage>
       <Canvas

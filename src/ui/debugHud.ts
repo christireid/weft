@@ -1,6 +1,8 @@
 import { frame } from '../state/frame';
 import { PLATES } from '../config/plates';
 import { appStore } from '../state/store';
+import { getTierController } from '../gl/registry';
+import { tierReadout } from '../perf/controller';
 
 /**
  * Debug HUD painter.
@@ -30,6 +32,8 @@ export interface HudRefs {
   active: HTMLElement | null;
   rows: (HTMLElement | null)[];
   fps: HTMLElement | null;
+  tier: HTMLElement | null;
+  frametime: HTMLElement | null;
 }
 
 const refs: HudRefs = {
@@ -38,6 +42,8 @@ const refs: HudRefs = {
   active: null,
   rows: PLATES.map(() => null),
   fps: null,
+  tier: null,
+  frametime: null,
 };
 
 export function registerHud(next: Partial<HudRefs>): void {
@@ -45,6 +51,8 @@ export function registerHud(next: Partial<HudRefs>): void {
   if (next.primary !== undefined) refs.primary = next.primary;
   if (next.active !== undefined) refs.active = next.active;
   if (next.fps !== undefined) refs.fps = next.fps;
+  if (next.tier !== undefined) refs.tier = next.tier;
+  if (next.frametime !== undefined) refs.frametime = next.frametime;
   if (next.rows) {
     for (let i = 0; i < next.rows.length; i++) refs.rows[i] = next.rows[i] ?? null;
   }
@@ -55,6 +63,8 @@ export function clearHud(): void {
   refs.primary = null;
   refs.active = null;
   refs.fps = null;
+  refs.tier = null;
+  refs.frametime = null;
   for (let i = 0; i < refs.rows.length; i++) refs.rows[i] = null;
 }
 
@@ -75,6 +85,19 @@ export function paintHud(): void {
   if (refs.primary) {
     const plate = PLATES[router.primary];
     refs.primary.textContent = plate ? `${plate.numeral} ${plate.label}` : '—';
+  }
+
+  const controller = getTierController();
+  if (controller && (refs.tier || refs.frametime)) {
+    const readout = tierReadout(controller);
+    if (refs.tier) {
+      refs.tier.textContent = readout.warm
+        ? `${String(readout.tier)}  (${String(readout.switches)} sw)`
+        : `${String(readout.tier)}  warming`;
+    }
+    if (refs.frametime) {
+      refs.frametime.textContent = `p50 ${readout.p50.toFixed(1)}  p95 ${readout.p95.toFixed(1)}`;
+    }
   }
 
   for (let i = 0; i < refs.rows.length; i++) {
