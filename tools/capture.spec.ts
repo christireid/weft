@@ -8,6 +8,8 @@ const OUT = join(process.cwd(), 'docs', 'verification', 'captures');
 
 const at = Number(process.env.WEFT_CAPTURE_AT ?? '0');
 const label = process.env.WEFT_CAPTURE_LABEL ?? '';
+/** Seconds to hold at the offset before the shutter. See tools/capture.mjs. */
+const settle = Number(process.env.WEFT_CAPTURE_SETTLE ?? '0');
 const slug = `${label ? `${label}-` : ''}at-${at.toFixed(3).replace('.', 'p')}`;
 
 test('capture a still at the requested scroll offset', async ({ page }) => {
@@ -53,6 +55,10 @@ test('capture a still at the requested scroll offset', async ({ page }) => {
         /* fall through to the settle wait and report the real offset below */
       });
     await page.waitForTimeout(400);
+  }
+
+  if (settle > 0) {
+    await page.waitForTimeout(settle * 1000);
   }
 
   const reached = await page.evaluate(() => {

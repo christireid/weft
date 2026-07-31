@@ -34,6 +34,12 @@ export const pointerState = {
  * §10 forbids a custom cursor that hides the system one, so nothing here
  * touches cursor styling.
  */
+/**
+ * Set while a pointer is down, so CSS can suppress text selection for the
+ * duration of a drag. See the rule in global.css.
+ */
+const DRAGGING = 'is-dragging';
+
 export function attachPointer(field: TouchField): () => void {
   let pressure = 0;
 
@@ -55,11 +61,24 @@ export function attachPointer(field: TouchField): () => void {
 
   function onDown(event: PointerEvent): void {
     pressure = 1;
+    /*
+     * Dragging the filament used to drag-select the headline behind it, so a
+     * visitor pulling on the thread got a page full of highlighted type. The
+     * plates are grabbable across the whole viewport, so there is no element to
+     * scope `user-select: none` to — it has to be the duration of the gesture
+     * instead, which also leaves the copy selectable the rest of the time.
+     *
+     * A class rather than `preventDefault` because these listeners are passive
+     * and should stay that way: making them cancellable to suppress a selection
+     * would put scrolling back on the main thread, which is a far worse trade.
+     */
+    document.documentElement.classList.add(DRAGGING);
     toField(event, true);
   }
 
   function onUp(event: PointerEvent): void {
     pressure = 0;
+    document.documentElement.classList.remove(DRAGGING);
     toField(event, true);
   }
 
@@ -67,6 +86,7 @@ export function attachPointer(field: TouchField): () => void {
     pressure = 0;
     pointerState.pressure = 0;
     pointerState.present = 0;
+    document.documentElement.classList.remove(DRAGGING);
     field.clearPointer();
   }
 
@@ -81,6 +101,7 @@ export function attachPointer(field: TouchField): () => void {
   window.addEventListener('blur', onLeave);
 
   return () => {
+    document.documentElement.classList.remove(DRAGGING);
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerdown', onDown);
     window.removeEventListener('pointerup', onUp);

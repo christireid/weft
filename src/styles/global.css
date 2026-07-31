@@ -303,3 +303,19 @@ canvas {
     transition-duration: 0.01ms !important;
   }
 }
+
+/*
+ * While a pointer is down anywhere on the piece.
+ *
+ * Every plate is grabbable across the whole viewport, so a drag on the filament
+ * lands on the document layer as well and drag-selects whatever type it crosses.
+ * Suppressing selection for the duration of the gesture fixes that without
+ * making the copy unselectable the rest of the time — a page whose text can
+ * never be selected is hostile to anyone quoting it or feeding it to a
+ * translator.
+ */
+.is-dragging,
+.is-dragging * {
+  -webkit-user-select: none;
+  user-select: none;
+}

@@ -9,6 +9,7 @@ import {
 import { FrameLoop } from './FrameLoop';
 import { Tension } from '../plates/tension/Tension';
 import { Dispersion } from '../plates/dispersion/Dispersion';
+import { Turbulence } from '../plates/turbulence/Turbulence';
 import { hasWebGL2 } from './capability';
 import { appStore } from '../state/store';
 
@@ -89,6 +90,7 @@ export function Stage() {
         <FrameLoop />
         <Tension />
         <Dispersion />
+        <Turbulence />
       </Canvas>
     </div>
   );

@@ -1,8 +1,8 @@
 # STATE
 
-**Current loop:** L2 · tasks 1–2 done (Plates I–II), task 3 not started
+**Current loop:** L2 · complete (Plates I–III). L3 not started
 **Last updated:** 2026-07-31
-**`pnpm verify`:** green — 63 unit tests, 15 shader tests, 5 a11y tests
+**`pnpm verify`:** green — 69 unit tests, 15 shader tests, 6 a11y tests, plus a program-link sweep and a plate-isolation measurement
 **BLOCKERS:** none open
 
 ---
@@ -28,12 +28,27 @@ pnpm fit:cmf             # refit the colour-matching curves
 
 `D` toggles the debug HUD in the browser, `S` toggles Specimen Mode.
 
-**Next task: L2 task 3** — Plate III · TURBULENTIA. The filament frays into GPGPU particles
-advected through the curl field. `curl.glsl` and `simplex3d.glsl` are already built and
-GPU-tested (divergence 6.98e-3 relative). What Plate III adds is the position/velocity
-ping-pong pair, velocity-stretched point rendering, and the bloom pass — with §2's luminance
-cap applied **in the shader before bloom**, not after, because bloom samples the
-pre-tone-mapped buffer and tone mapping alone does not save additive-plus-bloom from white-out.
+**Next task: L3 task 1** — Plate IV · TEXTURA. A GPU verlet cloth on a 128×128 grid, pinned at
+two corners and releasing as the plate progresses, refracting a CC0 macro photograph that is
+legible only through the distortion. Plate III's exit already delivers the starting state: its
+lattice is indexed by particle, so the cloud resolves into a regular warp and weft rather than
+into a scatter (D-025), and `docs/verification/captures/p3-lattice3-at-0p498.png` is what that
+looks like.
+
+**Two things to carry into it**, both learned the expensive way in L2:
+
+1. Read the browser console before reasoning about the GPU. A program that fails to link is not
+   an exception — it is one console line and a frame that is quietly missing a pass (RT-13).
+   `tools/programs.spec.ts` now sweeps for it, and Plate IV must not be exempted from it.
+2. A plate that is not live has to be told its weight is zero, or it keeps drawing (D-026).
+   `tools/plates.spec.ts` measures the one bleed that is visible from the frame edge; Plate IV
+   sits inside the frame, so it will need its own measurement rather than inheriting that one.
+
+**Capturing anything with a simulation in it needs `--settle`.** This container advances Plate
+III at about a sixth of wall-clock, because the plate clamps its timestep to 1/30 s and a frame
+here costs ~220 ms. A default capture sees a fifth of a second of physics and reports a cloud
+that has not frayed — which says nothing about the plate. `pnpm capture --at 0.40 --settle 45`
+is what the L2 captures were taken with.
 
 **Environment notes that will otherwise cost an hour:** there is no GPU here (SwiftShader, so
 a frame costs ~220 ms once the composite pass is in the chain — see D-019); `playwright
@@ -79,9 +94,13 @@ against the §3 art direction. Anything below 8 goes back to step 3.
 | --- | ---------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1   | Plate I · TENSIO — ribbon, wave, grab, exit transformation | 8     | A real 1-D wave equation on the GPU, so travelling pulses, reflection-with-inversion at the pinned ends and exponential decay all fall out rather than being authored. Not 9: the first material put the whole spectral fringe inside one pixel, and §2's type/thread crossing is still occluded pending L4. |
 | 2   | Plate II · DISPERSIO — wedge, 16-sample spectral fan, drag | 8     | Continuous fan, violet deviated most through to red least, red end compressed by the 1/lambda^2 law, no ghosting. Not 9: §2 also asks the DOM text be composited into the scene so the spectrum falls on the letterforms, and that is not done.                                                              |
-| 3   | Plate III · TURBULENTIA                                    | —     | not started                                                                                                                                                                                                                                                                                                  |
+| 2b  | Bloom, and the shader that never compiled                  | 7     | The pass is right and §2's luminance cap is applied at extraction as required, but it shipped once with a fragment shader that did not compile and I argued about the render graph twice before reading the console. Scored on the process, not the pixels.                                                  |
+| 3   | Plate III · TURBULENTIA — GPGPU fray, curl advection, lattice exit | 8 | Everything §2 asks for is there and verified by looking: divergence-free advection, velocity-stretched streaks, the pointer repulsor, the camera orbit, and an exit that resolves into rows and columns. Not 9: three of its defects were found by opening a capture rather than by a test, and the plate is only measured for isolation, not for shape. |
 
-**Loop score: incomplete.**
+**Loop score: 8.** Three plates, each verified against a capture rather than against an
+intention. The loop's real output is the two structural traps it exposed — a shader that fails
+to link is a console line and a missing pass, and a plate that stops being told its weight keeps
+drawing — both of which now have a test that fails on the defect and passes on the fix.
 
 ---
 
@@ -146,28 +165,38 @@ the renderer onto the composite pass (D-016).
 
 ## Red team (§9.1)
 
-**Twelve defects found and fixed**, documented with evidence in
-`docs/verification/red-team.md`. Four were fixes that looked correct in the diff and did
+**Thirteen defects found and fixed**, documented with evidence in
+`docs/verification/red-team.md`. Five were changes that looked correct in the diff and did
 nothing at runtime — reduced motion that pinned a clock without stopping an integrator, a
 `tabIndex={-1}` that left Tab skipping every plate, an arrow-key nudge that Lenis overwrote
-every frame, and a settle window measured in frames on a machine running at 4 fps.
+every frame, a settle window measured in frames on a machine running at 4 fps, and a bloom
+shader that never compiled at all.
 
 The severe ones: the built `index.html` shipped no text at all (§5.1's entire justification
 for choosing Vite), `prefers-reduced-motion` was honoured in name only, and `Tab` reached
 nothing in a 700vh document.
 
+RT-13 is the one worth reading. `luminance` collides with a function three prepends to every
+`ShaderMaterial`, so the bloom program never linked; three logged it and carried on, and the
+frame rendered perfectly well with the pass simply absent. Three rounds of reasoning about a
+render graph that was already correct, when one console listener said it in a line. The rule
+that came out of it is D-020, and `tools/programs.spec.ts` enforces it.
+
 ---
 
 ## Not yet started
 
-Stated plainly so nobody mistakes the ledger's silence for completion: **L2 task 3, all of L3,
-L4, L5 and L6, the §9 final gate, and the §9.1 red-team pass.** The README was pulled forward
-from L6 at request and documents only the two plates that exist.
+Stated plainly so nobody mistakes the ledger's silence for completion: **all of L3, L4, L5 and
+L6, and the §9 final gate.** The README was pulled forward from L6 at request and documents
+only the plates that exist; Plate III is not in it yet.
+
+The §9.1 red-team pass has been run once (thirteen defects) but it was run against L1 and the
+first two plates. It has to be run again at the end, against the whole piece.
 
 ---
 
 ## Files maintained continuously (§0.3)
 
-`STATE.md` (this) · `DECISIONS.md` (20 entries) · `BLOCKERS.md` (none open) ·
+`STATE.md` (this) · `DECISIONS.md` (22 entries) · `BLOCKERS.md` (none open) ·
 `RESEARCH.md` (12 entries) · `CREDITS.md` · `docs/adr/` (2 of at least 5) ·
 `README.md` (pulled forward from L6; documents only what exists)

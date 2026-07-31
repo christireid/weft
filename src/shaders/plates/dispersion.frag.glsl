@@ -197,13 +197,26 @@ void main() {
    */
   vec4 touch = texture2D(uTouch, vUv);
   float nearGlass = 1.0 - smoothstep(0.0, WEDGE_SIZE * 1.6, tri);
-  float hint = touch.a * nearGlass * 0.5;
+  float hint = touch.a * nearGlass;
 
-  // The glass itself: a hairline silhouette in --ink-12's neighbourhood, plus
-  // the pointer hint. Never a fill — a filled prism would occlude the spectrum
-  // that is the whole point of the plate.
+  /*
+   * The glass itself: a hairline silhouette in --ink-12's neighbourhood, which
+   * brightens where the pointer is near it.
+   *
+   * The hint multiplies the outline rather than being added to the frame. Added,
+   * it was a fill — and a fill is what the line below this one already forbids,
+   * for the reason given. It did not read as glass either: the touch field is a
+   * low-resolution buffer, so an additive term spread over `nearGlass` (a band
+   * two thirds the width of the wedge) rendered as soft grey rectangles
+   * drifting near the prism, which looks like a bug rather than like an object
+   * responding. Confined to the silhouette it is a hairline that lights up,
+   * which is what was wanted.
+   *
+   * Never a fill — a filled prism would occlude the spectrum that is the whole
+   * point of the plate.
+   */
   float outline = 1.0 - smoothstep(0.0, 0.006, abs(tri));
-  colour += vec3(outline * 0.16 + hint);
+  colour += vec3(outline * (0.16 + hint * 0.85));
 
   gl_FragColor = vec4(colour * uWeight, 1.0);
 }

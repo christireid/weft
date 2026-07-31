@@ -20,7 +20,7 @@ import { setTierController } from './registry';
 import { Composite } from './composite';
 import { Bloom } from './bloom';
 import { TIER_PROFILES } from '../perf/tier';
-import { getDispersionPlate, getTensionPlate } from './registry';
+import { getDispersionPlate, getTensionPlate, getTurbulencePlate } from './registry';
 
 /**
  * The single frame loop (§5.2).
@@ -57,6 +57,17 @@ const MAX_DELTA = 0.05;
 /** Previous pointer x, for plates that want a drag delta rather than a position. */
 let lastPointerX = 0.5;
 
+/*
+ * Whether the camera is currently displaced from its neutral pose. Lets the
+ * orbit run one final frame at weight zero, which returns the camera exactly to
+ * where the other plates expect it rather than leaving it a fraction off.
+ *
+ * Module scope for the same reason as `lastPointerX`: there is exactly one
+ * frame loop in the application (ADR-0001), and per-frame state that lives in
+ * the component body would be reset by every React render (§5.2).
+ */
+let cameraOrbited = false;
+
 /**
  * Any non-zero priority makes r3f hand rendering over to this callback instead
  * of issuing its own `gl.render` after the loop. Required: r3f's automatic
@@ -75,6 +86,21 @@ const RENDER_PRIORITY = 1;
  * a crest — the most legible moment for a thread whose subject is its shape.
  */
 const SPECIMEN_FROZEN_TIME = 1.7;
+
+/**
+ * Plate III's camera orbit (§2).
+ *
+ * A sixth of a turn across the whole plate. Wide enough that the parallax
+ * between the near and far edges of the cloud is unmistakable — which is the
+ * point, since a particle cloud with no parallax reads as a flat texture — and
+ * narrow enough that the plate's composition does not swing across the frame
+ * while a visitor is reading the type pinned beside it.
+ */
+const ORBIT_SWEEP = Math.PI / 3;
+/** Vertical travel, world units. Small: the horizon should stay level. */
+const ORBIT_RISE = 0.55;
+/** Matches the Canvas camera's resting z, so weight 0 is exactly neutral. */
+const CAMERA_DISTANCE = 6;
 
 /**
  * Frames Specimen Mode steps before it stops stepping.
@@ -199,7 +225,19 @@ export function FrameLoop() {
     const tension = getTensionPlate();
     if (tension) {
       const slot = frame.router.slots[0];
-      if (slot?.active) {
+      if (!slot?.active) {
+        /*
+         * Weight to zero when the plate is not live.
+         *
+         * A plate's mesh stays in the scene graph across the whole document —
+         * mounting and unmounting it per plate would rebuild its buffers at
+         * every crossing — so a plate that stops being told its weight keeps
+         * drawing at whatever weight it last had. Plate I's filament was
+         * visible across Plates III onward for exactly that reason: it was
+         * never told it had stopped.
+         */
+        tension.setLocalTime(0, 0);
+      } else {
         tension.setLocalTime(slot.t, slot.weight);
         if (specimen) {
           // Held at rest: no pointer drive, pinned clock, and no stepping at
@@ -213,6 +251,63 @@ export function FrameLoop() {
           tension.step(gl, frame.elapsed);
         }
       }
+    }
+
+    /*
+     * Plate III's GPGPU pair. Stepped before the scene render because the draw
+     * that consumes it happens inside `gl.render` — the points mesh is in the
+     * r3f scene, not a fullscreen pass — so stepping afterwards would draw the
+     * previous frame's state.
+     */
+    const turbulence = getTurbulencePlate();
+    if (turbulence) {
+      const slot = frame.router.slots[2];
+      if (slot?.active) {
+        turbulence.setLocalTime(slot.t, slot.weight);
+        if (specimen) {
+          // The advection is not idempotent under a pinned clock — it is an
+          // integrator like the wave, and a fixed Δt would keep carrying the
+          // cloud. Freezing means not stepping at all; the pose the settle
+          // window arrives at is what Specimen Mode holds.
+          if (!frozen) turbulence.step(gl, frame.delta, SPECIMEN_FROZEN_TIME, touch.texture);
+        } else {
+          turbulence.step(gl, frame.delta, frame.elapsed, touch.texture);
+        }
+      } else {
+        // Weight zero when the plate is not live, so a mesh that is still in
+        // the scene graph contributes nothing rather than being culled by a
+        // conditional mount that would rebuild its buffers on every crossing.
+        turbulence.setLocalTime(0, 0);
+      }
+    }
+
+    /*
+     * §2 Plate III: "Camera orbits slowly."
+     *
+     * Driven from here rather than from the plate, because there is one camera
+     * and six plates: a plate that moved the camera itself would leave it
+     * wherever it stopped, and the next plate would inherit a pose it never
+     * asked for. Weighting by the slot's blend weight makes the orbit fade in
+     * and out with the plate and guarantees the camera is back at the neutral
+     * pose wherever no plate is asking for one.
+     *
+     * The angle comes from the plate's own local time, not from the clock, so
+     * scrolling back up unwinds the orbit rather than continuing it — the piece
+     * is a document, and a document does not have a different camera the second
+     * time you read a page.
+     */
+    const orbitSlot = frame.router.slots[2];
+    const orbitWeight = orbitSlot?.active ? orbitSlot.weight : 0;
+    if (orbitWeight > 0 || cameraOrbited) {
+      const angle = (orbitSlot?.t ?? 0) * ORBIT_SWEEP * orbitWeight;
+      const camera = state.camera;
+      camera.position.set(
+        Math.sin(angle) * CAMERA_DISTANCE,
+        Math.sin(angle * 0.6) * ORBIT_RISE * orbitWeight,
+        Math.cos(angle) * CAMERA_DISTANCE,
+      );
+      camera.lookAt(0, 0, 0);
+      cameraOrbited = orbitWeight > 0;
     }
 
     /*
@@ -239,7 +334,13 @@ export function FrameLoop() {
     const dispersion = getDispersionPlate();
     if (dispersion) {
       const slot = frame.router.slots[1];
-      if (slot?.active) {
+      if (!slot?.active) {
+        // Same reason as Plate I above. Plate II is a fullscreen pass that is
+        // only issued while live, so it cannot bleed the way a mesh can — but
+        // its weight is what the blend band reads, and leaving it stale means
+        // the first frame after a re-entry is drawn at the old weight.
+        dispersion.setLocalTime(0, 0);
+      } else {
         dispersion.setLocalTime(slot.t, slot.weight);
         if (specimen) {
           dispersion.render(gl, SPECIMEN_FROZEN_TIME, touch.texture);

@@ -35,7 +35,17 @@ async function captureSequence(
   offsetAt: (i: number) => number,
   perFrame?: (page: Page, i: number) => Promise<void>,
 ): Promise<void> {
+  /*
+   * Clear this sequence's directory, not the whole tree.
+   *
+   * A `rm -rf` of FRAMES in `beforeAll` looked tidier and cost a full run: when
+   * one sequence fails, Playwright retries it in a fresh worker, `beforeAll`
+   * runs again, and twenty minutes of already-captured frames from the *other*
+   * sequences are deleted. Scoping the clear to the sequence about to be
+   * written makes a retry cost only the sequence that failed.
+   */
   const dir = join(FRAMES, name);
+  await rm(dir, { recursive: true, force: true });
   await mkdir(dir, { recursive: true });
 
   const scrollable = await page.evaluate(
@@ -57,12 +67,18 @@ async function captureSequence(
 }
 
 test.beforeAll(async () => {
-  await rm(FRAMES, { recursive: true, force: true });
+  await mkdir(FRAMES, { recursive: true });
   await mkdir(MEDIA, { recursive: true });
 });
 
+/*
+ * Tier 1 (D-021). This container has no GPU and the boot probe settles it at
+ * tier 3, where §5.6 disables bloom — so an unpinned capture documents a
+ * degraded rendering path as if it were the piece. The whole point of these
+ * files is to show what a visitor on real hardware sees.
+ */
 test.beforeEach(async ({ page }) => {
-  await page.goto('/', { waitUntil: 'load' });
+  await page.goto('/?tier=1', { waitUntil: 'load' });
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(1800);
 });
@@ -76,42 +92,75 @@ test.beforeEach(async ({ page }) => {
  * the honest thing to lead the README with.
  */
 test('hero: Plate I → II', async ({ page }) => {
-  await captureSequence(page, 'hero', 44, (i) => 0.06 + (i / 43) * 0.2);
+  /*
+   * The pointer pulls the filament for the first third and lets go, so the
+   * thread is ringing as the transformation begins. Without it the hero opened
+   * on a thread at its idle amplitude — a hairline that barely clears the void —
+   * and the first two seconds of the README showed a still page that happened
+   * to be scrolling.
+   */
+  await captureSequence(
+    page,
+    'hero',
+    44,
+    (i) => 0.06 + (i / 43) * 0.2,
+    async (p, i) => {
+      if (i === 2) {
+        await p.mouse.move(430, 470);
+        await p.mouse.down();
+      }
+      if (i > 2 && i < 14) await p.mouse.move(430 + (i - 2) * 32, 470 - (i - 2) * 20);
+      if (i === 14) await p.mouse.up();
+    },
+  );
 });
 
 test('plate I: the thread under load', async ({ page }) => {
   // A grab and release, so the GIF shows the thread responding rather than
   // merely existing. The pointer path is fixed, so the run is deterministic.
+  /*
+   * Pull hard, hold a beat, release, and keep the shutter open while it rings.
+   * The release is the interesting half: the wave equation is what makes this a
+   * simulation rather than an eased curve, and it is only legible while the
+   * disturbance is travelling back along the span. The first cut of this let go
+   * on the second-to-last frame and the GIF was all pull and no physics.
+   */
   await captureSequence(
     page,
     'plate-01',
     34,
     () => 0.03,
     async (p, i) => {
-      if (i === 4) {
-        await p.mouse.move(520, 470);
+      if (i === 3) {
+        await p.mouse.move(430, 470);
         await p.mouse.down();
       }
-      if (i > 4 && i < 16) await p.mouse.move(520 + (i - 4) * 26, 470 - (i - 4) * 17);
-      if (i === 16) await p.mouse.up();
+      if (i > 3 && i < 14) await p.mouse.move(430 + (i - 3) * 34, 470 - (i - 3) * 24);
+      if (i === 15) await p.mouse.up();
     },
   );
 });
 
 test('plate II: the prism', async ({ page }) => {
   // Rotating the wedge sweeps the spectrum, which is the plate's interaction.
+  /*
+   * Sweep the wedge across and back. One direction alone reads as a slider being
+   * dragged; the return makes it clear the fan is a function of the geometry
+   * rather than of the gesture.
+   */
   await captureSequence(
     page,
     'plate-02',
     34,
     () => 0.245,
     async (p, i) => {
-      if (i === 3) {
-        await p.mouse.move(700, 450);
+      if (i === 2) {
+        await p.mouse.move(640, 450);
         await p.mouse.down();
       }
-      if (i > 3 && i < 28) await p.mouse.move(700 + (i - 3) * 14, 450);
-      if (i === 28) await p.mouse.up();
+      if (i > 2 && i <= 18) await p.mouse.move(640 + (i - 2) * 22, 450);
+      if (i > 18 && i < 32) await p.mouse.move(640 + (34 - i) * 22, 450);
+      if (i === 32) await p.mouse.up();
     },
   );
 });
@@ -121,22 +170,55 @@ test('plate II: the prism', async ({ page }) => {
 test('stills', async ({ page }) => {
   await mkdir(MEDIA, { recursive: true });
 
-  const shots: [string, number][] = [
-    ['still-masthead', 0.0],
-    ['still-plate-01', 0.05],
-    ['still-plate-02', 0.245],
+  /*
+   * Each still is taken at a *loaded* moment, not a resting one.
+   *
+   * The first pass of these captured Plate I at rest, where the filament is a
+   * hairline at the idle amplitude and the frame is 96% void. That is an honest
+   * photograph of an uninteresting instant. The plate is about a thread under
+   * load, so the still holds it under load — the pointer is placed and dragged
+   * before the shutter, and the wave is still travelling when it fires.
+   */
+  const shots: [string, number, ((p: Page) => Promise<void>) | null][] = [
+    ['still-masthead', 0.0, null],
+    [
+      'still-plate-01',
+      0.05,
+      async (p) => {
+        await p.mouse.move(430, 470);
+        await p.mouse.down();
+        // Far enough to pull the filament well clear of its sag, and held, so
+        // the shutter catches the standing shape rather than the release.
+        for (let i = 1; i <= 10; i++) await p.mouse.move(430 + i * 34, 470 - i * 22);
+        await p.waitForTimeout(120);
+      },
+    ],
+    [
+      'still-plate-02',
+      0.245,
+      async (p) => {
+        // Rotate the wedge off-axis so the fan is at its widest rather than
+        // folded back along the incident beam.
+        await p.mouse.move(700, 450);
+        await p.mouse.down();
+        for (let i = 1; i <= 12; i++) await p.mouse.move(700 + i * 22, 450);
+        await p.waitForTimeout(120);
+      },
+    ],
   ];
 
   const scrollable = await page.evaluate(
     () => document.documentElement.scrollHeight - window.innerHeight,
   );
 
-  for (const [name, at] of shots) {
+  for (const [name, at, load] of shots) {
     await page.evaluate((y) => {
       window.scrollTo(0, y);
     }, at * scrollable);
     await page.waitForTimeout(700);
+    if (load) await load(page);
     await page.screenshot({ path: join(MEDIA, `${name}.png`) });
+    await page.mouse.up();
     console.log(`[media] ${name}.png at ${at.toFixed(3)}`);
   }
 

@@ -137,3 +137,54 @@ test.describe('reduced motion (§6.2, §8.2 item 5)', () => {
     ).toBe(0);
   });
 });
+
+/*
+ * Dragging a plate must not drag-select the page.
+ *
+ * Every plate is grabbable across the whole viewport, so a pull on the filament
+ * lands on the document layer too. Before this was fixed, a visitor who grabbed
+ * the thread got the masthead and the standfirst highlighted behind it — which
+ * showed up in the README stills as a white box behind the copy.
+ *
+ * Asserted on the outcome — what the selection actually contains after the
+ * gesture — rather than on the presence of a CSS rule, because a rule that does
+ * not match anything is exactly as green as one that does.
+ */
+test('dragging a plate does not select the page text', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'load' });
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(900);
+
+  const standfirst = page.locator('.standfirst, p').first();
+  const box = await standfirst.boundingBox();
+  expect(box, 'a text block to drag across').not.toBeNull();
+  if (!box) return;
+
+  // Start left of the text and drag right through it — the gesture a visitor
+  // makes when they grab the thread near the top of the page.
+  await page.mouse.move(box.x + 4, box.y + box.height / 2);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) {
+    await page.mouse.move(box.x + 4 + (box.width / 8) * i, box.y + box.height / 2);
+  }
+  const during = await page.evaluate(() => window.getSelection()?.toString() ?? '');
+  await page.mouse.up();
+  const after = await page.evaluate(() => window.getSelection()?.toString() ?? '');
+
+  expect(during, 'text selected during the drag').toBe('');
+  expect(after, 'text left selected after the drag').toBe('');
+
+  // And the copy is still selectable by ordinary means once the drag is over —
+  // a page whose text can never be selected is a worse bug than the one above.
+  const selectable = await page.evaluate(() => {
+    const node = document.querySelector('.standfirst, p');
+    if (!node) return '';
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    return window.getSelection()?.toString() ?? '';
+  });
+  expect(selectable.length, 'copy is still selectable outside a drag').toBeGreaterThan(0);
+});

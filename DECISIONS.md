@@ -426,6 +426,102 @@ in L5 without four machines.
 
 ---
 
+## D-022 · Velocity-stretched points are point sprites with the streak drawn inside
+
+§2: "Particles render as velocity-stretched points [...] costs one line in the vertex shader."
+
+`gl.POINTS` sprites are square and axis-aligned, so there is no way to stretch one along an
+arbitrary direction from the vertex stage. The usual answer is an instanced quad per particle —
+four vertices instead of one, which at tier 1's 500,000 particles is two million vertices a
+frame for a plate that already runs eighteen simplex evaluations per particle in its sim step.
+
+Taken instead: the sprite stays square, the vertex shader sizes it to *contain* the streak, and
+the fragment shader draws an oriented capsule inside it from the screen-space velocity
+direction. One vertex per particle, a real streak rather than a larger dot, and the cost moves
+from vertices to fill, which is the cheaper half on every device in §5.6's table.
+
+The cost is honest: a very fast particle needs a large sprite and most of it is discarded.
+`MAX_STRETCH` bounds it at six times the resting diameter, which is also where the streaks
+start touching each other and the cloud reads as hatching rather than as particles.
+
+---
+
+## D-023 · "Depth-sorted additive" resolves to no depth test and a per-particle emission cap
+
+§2 asks for "depth-sorted additive blending with a tone-mapped bloom pass".
+
+Additive blending is order-independent — a + b = b + a — so sorting cannot change the result,
+and sorting half a million particles per frame on the CPU is precisely the per-particle
+JavaScript the same section forbids. What sorting is really for in an additive cloud is the
+depth *test*, and the resolution here is to turn both the test and the write off: every
+particle contributes, nothing occludes anything.
+
+That leaves the accumulation unbounded, which is the failure §2 warns about. It is bounded by a
+cap on what a *single particle* may emit, applied in `turbulence.frag.glsl` before anything
+accumulates — not by clamping the accumulated buffer, which is what actually produces the white
+mush: clamping the sum flattens every dense region to the same value, so the cloud loses its
+interior structure and reads as a solid.
+
+Two caps exist in the piece and they do different jobs. This one bounds a particle's
+contribution to the frame; the one in `bloom.frag.glsl` bounds a bright fragment's contribution
+to its neighbours.
+
+---
+
+## D-024 · A particle's wavelength comes from where it was born, not from its seed
+
+First version drew the wavelength from the particle's random seed. Every pixel then carried an
+independent, fully saturated hue, and at roughly one pixel per particle there is no
+neighbourhood for the eye to average — the cloud read as RGB confetti. Looking at a 1:1 crop is
+what settled it; at a third scale it looked like fine spectral speckle and passed.
+
+Now the wavelength is a function of the particle's position along the source filament. Adjacent
+particles carry adjacent wavelengths, so the fray separates into coloured strands and dense
+regions sum toward white. It also matches Plate II, where wavelength maps to deviation angle and
+the fan is ordered rather than scattered — this is meant to be the same light, one plate later.
+
+The particle size went from 1.9 to 3.4 CSS pixels at the same time and for the same reason:
+sprites have to overlap for neighbouring wavelengths to sum at all. A fifth of the way toward
+the band's white point is mixed in on top, because a monochromatic wavelength is fully
+saturated by definition and real scattered light returns a band, not a line.
+
+---
+
+## D-025 · The exit lattice is indexed by particle, not snapped to the nearest site
+
+§2's exit: "the curl decays to zero and a lattice attractor engages. Particles fall into rows
+and columns."
+
+Snapping each particle to the nearest point of a regular grid does not produce that. Particles
+pile onto whichever sites the cloud happened to be dense around and leave the rest of the grid
+empty, so the exit resolved to a scatter of bright dots — verified by looking at
+`docs/verification/captures/p3-lattice-at-0p492.png`, which is why that capture is kept.
+
+Indexing the site by the particle's own texel in the sim texture gives every particle a distinct
+site and fills the lattice exactly once. At tier 3's 512×512 that is a fine regular mesh, which
+reads as woven cloth at viewport scale — both what §2 describes and the state Plate IV's cloth
+has to start from.
+
+---
+
+## D-026 · A plate that is not live is told its weight is zero
+
+A plate's mesh stays in the scene graph for the whole document; mounting and unmounting per
+plate would rebuild its buffers at every crossing. The router only tells a plate its blend
+weight while that plate is live, so a plate that stops being told keeps drawing at whatever
+weight it last had.
+
+Plate I's filament was consequently visible across Plate III, and would have been visible across
+every plate after it. It is a structural trap rather than a typo — every plate added from here
+has the same shape — so the frame loop now zeroes the weight in the inactive branch, and
+`tools/plates.spec.ts` measures the consequence: at a scroll offset inside Plate III, the outer
+4% of the frame must be within 10 levels of `--void`. Plate I's filament is the only thing in
+the piece that spans the viewport edge to edge, so it is the one plate whose bleed that
+measurement can see. With the defect reinstated it reads 245 levels; with the fix, 4 — the
+dither, which is supposed to be there.
+
+---
+
 ## Delegated copy (§4.3)
 
 Recorded here so it can be edited in one place, per §4.3. Written in the §4.1 voice: present

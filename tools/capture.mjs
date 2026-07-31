@@ -22,6 +22,17 @@ function flag(name, fallback) {
 }
 
 const at = flag('at', '0');
+/*
+ * Extra seconds to let a simulation develop before the shutter.
+ *
+ * Needed because of D-019: this container rasterises in software at roughly
+ * 220 ms a frame, and the plates clamp their timestep so a long frame cannot
+ * teleport the simulation. Plate III advances at most 1/30 s per frame, so a
+ * default capture sees about a fifth of a second of physics and reports a cloud
+ * that has not frayed yet — which says nothing about the plate and everything
+ * about the machine.
+ */
+const settle = flag('settle', '0');
 const label = flag('label', '');
 /** `--debug` presses D on the page first, so the L1 HUD is in the still. */
 const debug = argv.includes('--debug') ? '1' : '';
@@ -42,6 +53,7 @@ const result = spawnSync(
       WEFT_CAPTURE_AT: String(parsed),
       WEFT_CAPTURE_LABEL: label,
       WEFT_CAPTURE_DEBUG: debug,
+      WEFT_CAPTURE_SETTLE: String(Number(settle) || 0),
     },
     shell: process.platform === 'win32',
   },
